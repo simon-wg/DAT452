@@ -39,6 +39,9 @@ power2 n k
 
 <Describe your test cases here>
   [(1,0), (2,2), (2, 2^20), (12,12)]
+  We selected one very large number, some even, some odd in order to test
+  what happens e.g. when using replicate with large numbers, and power2 with
+  both even and odds.
  -}
 
 --
@@ -46,8 +49,10 @@ prop_powers :: Integer -> Integer -> Bool
 prop_powers n k = power n k == power1 n k && power1 n k == power2 n k
 
 --
-test_cases = [(1, 0), (2, 2), (2, 2 ^ 20), (12, 12)]
+test_cases :: [(Integer, Integer)]
+test_cases = [(1, 0), (2, 2), (2, 2 ^ 30), (12, 12)]
 
+powerTest :: Bool
 powerTest = and [prop_powers n k | (n, k) <- test_cases]
 
 --
