@@ -48,8 +48,10 @@ prop_powers n k = power n k == power1 n k && power1 n k == power2 n k
 --
 test_cases = [(1, 0), (2, 2), (2, 2 ^ 20), (12, 12)]
 
-powerTest = [prop_powers n k | (n, k) <- test_cases]
+powerTest = and [prop_powers n k | (n, k) <- test_cases]
 
 --
 prop_powers' :: Integer -> Integer -> Bool
-prop_powers' n k = power n (abs k) == power1 n (abs k) && power1 n (abs k) == power2 n (abs k)
+prop_powers' n k =
+  power n (abs k) == power1 n (abs k)
+    && power1 n (abs k) == power2 n (abs k)
