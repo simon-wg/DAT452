@@ -1,7 +1,7 @@
 {- Lab 1
    Date: 6/11/2024
    Authors: Simon Westlin Green, Adam Hellgård
-   Lab group: ??
+   Lab group: 65
  -}
 --------------------------------------------
 power :: Integer -> Integer -> Integer
@@ -47,9 +47,10 @@ power2 n k
 
 <Describe your test cases here>
   [(2, 0), (0, 2), (3, 6), (4, 3), (-1, 1), (-1,2)]
-  We selected one very large number, some even, some odd in order to test
-  what happens e.g. when using replicate with large numbers, and power2 with
-  both even and odds.
+  We have chosen test cases for 0s as both n and k, evens and odds for n and k,
+  as well as negative numbers for n.
+  This is due to these being the cases which in our opinion are most likely
+  to break in one or the other of the implementations.
  -}
 
 --
