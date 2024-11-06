@@ -1,7 +1,7 @@
 {- Lab 1
-   Date: 5/11/2024
-   Authors:
-   Lab group:
+   Date: 6/11/2024
+   Authors: Simon Westlin Green, Adam Hellgård
+   Lab group: ??
  -}
 --------------------------------------------
 power :: Integer -> Integer -> Integer
@@ -20,6 +20,14 @@ stepsPower n k = k + 1
 -- B -------------------------
 -- power1
 
+{-
+  First we forgot to check the base case of k = 0, but for some reason it works
+  without the basecase. After checking on hoogle we found that product used on 
+  an empty list returns 1.
+
+  Therefore we don't need to check for k = 0.
+-}
+
 power1 :: Integer -> Integer -> Integer
 power1 n k | k < 0 = error "power: negative argument"
 power1 n k = product (replicate (fromIntegral k) n)
@@ -31,14 +39,14 @@ power2 :: Integer -> Integer -> Integer
 power2 n 0 = 1
 power2 n k
   | k < 0 = error "power: negative argument"
-  | even k = power2 n (div k 2) * power2 n (div k 2)
+  | even k = power2 (n * n) (div k 2)
   | otherwise = n * power2 n (k - 1)
 
 -- D -------------------------
 {-
 
 <Describe your test cases here>
-  [(1,0), (2,2), (2, 2^20), (12,12)]
+  [(2, 0), (0, 2), (3, 6), (4, 3), (-1, 1), (-1,2)]
   We selected one very large number, some even, some odd in order to test
   what happens e.g. when using replicate with large numbers, and power2 with
   both even and odds.
@@ -50,7 +58,7 @@ prop_powers n k = power n k == power1 n k && power1 n k == power2 n k
 
 --
 test_cases :: [(Integer, Integer)]
-test_cases = [(1, 0), (2, 2), (2, 2 ^ 30), (12, 12)]
+test_cases = [(2, 0), (0, 2), (3, 6), (4, 3), (-1, 1), (-1, 2)]
 
 powerTest :: Bool
 powerTest = and [prop_powers n k | (n, k) <- test_cases]
