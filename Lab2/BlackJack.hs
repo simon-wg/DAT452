@@ -55,10 +55,14 @@ value (Add c h)
 -- A3 Is the player bust?
 
 gameOver :: Hand -> Bool
-gameOver h 
-   | value h > 21 = True
-   | otherwise    = False
+gameOver h = value h > 21
 
 -- A4 Winner function
 
 winner :: Hand -> Hand -> Player
+winner g b
+   | guestV > 21     = Bank
+   | guestV == bankV = Bank
+   | otherwise       = Guest
+   where  guestV = value g
+          bankV = value b
