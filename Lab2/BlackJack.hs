@@ -51,3 +51,14 @@ value (Add c h)
    | otherwise     = initVal - ((numberOfAces (Add c h)) * 10)
    where initVal = initialValue (Add c h)
         
+
+-- A3 Is the player bust?
+
+gameOver :: Hand -> Bool
+gameOver h 
+   | value h > 21 = True
+   | otherwise    = False
+
+-- A4 Winner function
+
+winner :: Hand -> Hand -> Player
