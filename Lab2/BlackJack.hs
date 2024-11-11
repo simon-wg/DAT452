@@ -6,6 +6,7 @@ import Test.QuickCheck
 
 -- A0 Writing out the sequence
 
+hand2 :: Hand
 hand2 =
   Add
     (Card (Numeric 2) Hearts)
@@ -89,3 +90,28 @@ winner guestHand bankHand
   | gameOver bankHand = Guest
   | value guestHand <= value bankHand = Bank
   | otherwise = Guest
+
+-- B1 Stack first hand on second
+
+{- Takes two hands and returns one hand with the second argument representing
+the top and the first representing the bottom -}
+(<+) :: Hand -> Hand -> Hand
+h1 <+ Empty = h1
+h1 <+ (Add c h2) = Add c (h1 <+ h2)
+
+{- Function from the instructions -}
+prop_onTopOf_assoc :: Hand -> Hand -> Hand -> Bool
+prop_onTopOf_assoc p1 p2 p3 = p1 <+ (p2 <+ p3) == (p1 <+ p2) <+ p3
+
+{- Takes two hands, and asserts that the size of h1 <+ h2 equals
+the sum of their individual sizes -}
+prop_size_onTopOf :: Hand -> Hand -> Bool
+prop_size_onTopOf h1 h2 =
+  toInteger (size h1) + toInteger (size h2) == toInteger (size (h1 <+ h2))
+
+-- B2 TODO
+{-
+ranks = Ace:King:Queen:Jack:[Numeric x | x <- [10,9..2]]
+suits = [Spades, Diamonds, Clubs, Hearts]
+[Add (Card y x) Empty | x <- suits, y <- ranks]
+-}
