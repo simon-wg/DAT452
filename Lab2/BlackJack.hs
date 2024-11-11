@@ -47,7 +47,7 @@ numberOfAces (Add c h)
 value :: Hand -> Integer
 value Empty     = 0
 value (Add c h)
-   | initialValue (Add c h) <= 21 = initialValue (Add c h)
-   | otherwise                = initialValue (Add c h) - ((numberOfAces (Add c h)) * 10)
+   | initVal <= 21 = initVal
+   | otherwise     = initVal - ((numberOfAces (Add c h)) * 10)
    where initVal = initialValue (Add c h)
         
