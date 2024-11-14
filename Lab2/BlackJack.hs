@@ -2,6 +2,7 @@ module BlackJack where
 
 import Cards
 import RunGame
+import System.Random
 import Test.QuickCheck
 
 -- A0 Writing out the sequence
@@ -109,9 +110,57 @@ prop_size_onTopOf :: Hand -> Hand -> Bool
 prop_size_onTopOf h1 h2 =
   toInteger (size h1) + toInteger (size h2) == toInteger (size (h1 <+ h2))
 
--- B2 TODO
+-- B2 Full deck of cards
 {-
 ranks = Ace:King:Queen:Jack:[Numeric x | x <- [10,9..2]]
 suits = [Spades, Diamonds, Clubs, Hearts]
 [Add (Card y x) Empty | x <- suits, y <- ranks]
 -}
+
+allRanks = [Numeric x | x <- [10, 9 .. 2]] ++ [Jack, Queen, King, Ace]
+
+allSuits = [Hearts, Clubs, Diamonds, Spades]
+
+fullDeck = foldr (<+) Empty [Add (Card y x) Empty | x <- allSuits, y <- allRanks]
+
+-- B3 Given a deck and a hand, draw one card from the deck and put on the hand.
+
+draw :: Hand -> Hand -> (Hand, Hand)
+draw Empty h1 = error "draw: The deck is empty."
+draw deck h1 = (restDeck, Add drawn h1)
+  where
+    Add drawn restDeck = deck
+
+-- B4 Play deck
+playBank :: Hand -> Hand
+playBank = playBankHelper fullDeck
+
+playBankHelper :: Hand -> Hand -> Hand
+playBankHelper deck hand
+  | value hand < 16 = playBankHelper deck' hand'
+  | otherwise = hand
+  where
+    (deck', hand') = draw deck hand
+
+-- B4 Shuffle deck
+
+shuffleDeck :: StdGen -> Hand -> Hand
+shuffleDeck = undefined
+
+dieRoll :: StdGen -> (Integer, Integer)
+dieRoll g = (n1, n2)
+  where
+    (n1, g1) = randomR (1, 6) g
+    (n2, _) = randomR (1, 6) g1
+
+cardPicker :: Int -> Hand -> (Card, Hand)
+cardPicker n Empty = undefined
+cardPicker n deck = cardPickerHelper n Empty deck
+
+cardPickerHelper :: Int -> Hand -> Hand -> (Card, Hand)
+cardPickerHelper n leftDeck rightDeck
+  | n < 0 || n >= size rightDeck = error "Index out of bounds"
+  | n == 0 = (c, h <+ leftDeck)
+  | otherwise = cardPickerHelper (n - 1) (Add c Empty <+ leftDeck) h
+  where
+    Add c h = rightDeck
