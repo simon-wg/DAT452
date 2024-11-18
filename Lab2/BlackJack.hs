@@ -121,7 +121,14 @@ allRanks = [Numeric x | x <- [10, 9 .. 2]] ++ [Jack, Queen, King, Ace]
 
 allSuits = [Hearts, Clubs, Diamonds, Spades]
 
-fullDeck = foldr (<+) Empty [Add (Card y x) Empty | x <- allSuits, y <- allRanks]
+fullDeck =
+  foldr
+    (<+)
+    Empty
+    [ Add (Card y x) Empty
+      | x <- allSuits,
+        y <- allRanks
+    ]
 
 -- B3 Given a deck and a hand, draw one card from the deck and put on the hand.
 
@@ -133,7 +140,7 @@ draw deck h1 = (restDeck, Add drawn h1)
 
 -- B4 Play deck
 playBank :: Hand -> Hand
-playBank = playBankHelper fullDeck
+playBank deck = playBankHelper deck Empty
 
 playBankHelper :: Hand -> Hand -> Hand
 playBankHelper deck hand
@@ -142,20 +149,26 @@ playBankHelper deck hand
   where
     (deck', hand') = draw deck hand
 
--- B4 Shuffle deck
+-- B5 Shuffle deck
 
 shuffleDeck :: StdGen -> Hand -> Hand
-shuffleDeck = undefined
+shuffleDeck = shuffleDeckHelper Empty
 
-dieRoll :: StdGen -> (Integer, Integer)
-dieRoll g = (n1, n2)
+shuffleDeckHelper :: Hand -> StdGen -> Hand -> Hand
+shuffleDeckHelper shuffled _ Empty = shuffled
+shuffleDeckHelper shuffled g unshuffled =
+  shuffleDeckHelper (shuffled <+ Add picked1 Empty) g1 newUnshuffled1
   where
-    (n1, g1) = randomR (1, 6) g
-    (n2, _) = randomR (1, 6) g1
+    ((picked1, newUnshuffled1), g1) = randomCard g unshuffled
 
-cardPicker :: Int -> Hand -> (Card, Hand)
-cardPicker n Empty = undefined
-cardPicker n deck = cardPickerHelper n Empty deck
+randomCard :: StdGen -> Hand -> ((Card, Hand), StdGen)
+randomCard g deck = ((c, h), g1)
+  where
+    ((c, h), g1) = cardPicker (randomR (0, size deck - 1) g) deck
+
+cardPicker :: (Int, StdGen) -> Hand -> ((Card, Hand), StdGen)
+cardPicker (n, g) Empty = error "Cant pick card from empty deck"
+cardPicker (n, g) deck = (cardPickerHelper n Empty deck, g)
 
 cardPickerHelper :: Int -> Hand -> Hand -> (Card, Hand)
 cardPickerHelper n leftDeck rightDeck
@@ -164,3 +177,29 @@ cardPickerHelper n leftDeck rightDeck
   | otherwise = cardPickerHelper (n - 1) (Add c Empty <+ leftDeck) h
   where
     Add c h = rightDeck
+
+belongsTo :: Card -> Hand -> Bool
+c `belongsTo` Empty = False
+c `belongsTo` (Add c' h) = c == c' || c `belongsTo` h
+
+prop_shuffle_sameCards :: StdGen -> Card -> Hand -> Bool
+prop_shuffle_sameCards g c h = c `belongsTo` h == c `belongsTo` shuffleDeck g h
+
+prop_size_shuffle :: StdGen -> Hand -> Bool
+prop_size_shuffle g h = size (shuffleDeck g h) == size h
+
+-- B6 - interface
+implementation =
+  Interface
+    { iFullDeck = fullDeck,
+      iValue = value,
+      iDisplay = display,
+      iGameOver = gameOver,
+      iWinner = winner,
+      iDraw = draw,
+      iPlayBank = playBank,
+      iShuffle = shuffleDeck
+    }
+
+main :: IO ()
+main = runGame implementation
