@@ -159,20 +159,21 @@ shuffleDeckHelper shuffled _ Empty = shuffled
 shuffleDeckHelper shuffled g unshuffled =
   shuffleDeckHelper (shuffled <+ Add picked1 Empty) g1 newUnshuffled1
   where
-    ((picked1, newUnshuffled1), g1) = randomCard g unshuffled
+    (picked1, newUnshuffled1, g1) = randomCard g unshuffled
 
-randomCard :: StdGen -> Hand -> ((Card, Hand), StdGen)
-randomCard g deck = ((c, h), g1)
+randomCard :: StdGen -> Hand -> (Card, Hand, StdGen)
+randomCard g deck = (c, h, g1)
   where
-    ((c, h), g1) = cardPicker (randomR (0, size deck - 1) g) deck
+    (randomNum, g1) = randomR (0, size deck - 1) g
+    (c, h) = cardPicker randomNum deck
 
-cardPicker :: (Int, StdGen) -> Hand -> ((Card, Hand), StdGen)
-cardPicker (n, g) Empty = error "Cant pick card from empty deck"
-cardPicker (n, g) deck = (cardPickerHelper n Empty deck, g)
+cardPicker :: Int -> Hand -> (Card, Hand)
+cardPicker n Empty = error "Cant pick card from empty deck"
+cardPicker n deck = cardPickerHelper n Empty deck
 
 cardPickerHelper :: Int -> Hand -> Hand -> (Card, Hand)
 cardPickerHelper n leftDeck rightDeck
-  | n < 0 || n >= size rightDeck = error "Index out of bounds"
+  | n < 0 || n >= size rightDeck = error "Index <0 or >deck."
   | n == 0 = (c, h <+ leftDeck)
   | otherwise = cardPickerHelper (n - 1) (Add c Empty <+ leftDeck) h
   where
