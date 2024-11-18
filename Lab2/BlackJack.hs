@@ -100,7 +100,7 @@ the top and the first representing the bottom -}
 h1 <+ Empty = h1
 h1 <+ (Add c h2) = Add c (h1 <+ h2)
 
-{- Function from the instructions -}
+{- Property that asserts that the hand stacking operator is associative -}
 prop_onTopOf_assoc :: Hand -> Hand -> Hand -> Bool
 prop_onTopOf_assoc p1 p2 p3 = p1 <+ (p2 <+ p3) == (p1 <+ p2) <+ p3
 
@@ -132,6 +132,8 @@ fullDeck =
 
 -- B3 Given a deck and a hand, draw one card from the deck and put on the hand.
 
+
+-- | When given a deck and a hand (in that order) takes the top card of the deck and puts it in the hand 
 draw :: Hand -> Hand -> (Hand, Hand)
 draw Empty h1 = error "draw: The deck is empty."
 draw deck h1 = (restDeck, Add drawn h1)
@@ -139,9 +141,12 @@ draw deck h1 = (restDeck, Add drawn h1)
     Add drawn restDeck = deck
 
 -- B4 Play deck
+
+-- | Plays out the game for the bank, standing when reaching a value of 16 or higher
 playBank :: Hand -> Hand
 playBank deck = playBankHelper deck Empty
 
+-- | Helper function for the play bank function
 playBankHelper :: Hand -> Hand -> Hand
 playBankHelper deck hand
   | value hand < 16 = playBankHelper deck' hand'
@@ -151,9 +156,11 @@ playBankHelper deck hand
 
 -- B5 Shuffle deck
 
+-- | Takes a random number generator as well as a deck (or a hand) and shuffles the order of the cards within that deck
 shuffleDeck :: StdGen -> Hand -> Hand
 shuffleDeck = shuffleDeckHelper Empty
 
+-- | Helper function for the shuffle deck function
 shuffleDeckHelper :: Hand -> StdGen -> Hand -> Hand
 shuffleDeckHelper shuffled _ Empty = shuffled
 shuffleDeckHelper shuffled g unshuffled =
@@ -161,16 +168,19 @@ shuffleDeckHelper shuffled g unshuffled =
   where
     (picked1, newUnshuffled1, g1) = randomCard g unshuffled
 
+-- | When given a random number generator and a hand, randomCard returns a randomly picked card 
 randomCard :: StdGen -> Hand -> (Card, Hand, StdGen)
 randomCard g deck = (c, h, g1)
   where
     (randomNum, g1) = randomR (0, size deck - 1) g
     (c, h) = cardPicker randomNum deck
 
+-- | Given an index as an integer and a hand, returns the pair of the card at the given index and the hand missing that card
 cardPicker :: Int -> Hand -> (Card, Hand)
 cardPicker n Empty = error "Cant pick card from empty deck"
 cardPicker n deck = cardPickerHelper n Empty deck
 
+-- | Helper function for the card picker
 cardPickerHelper :: Int -> Hand -> Hand -> (Card, Hand)
 cardPickerHelper n leftDeck rightDeck
   | n < 0 || n >= size rightDeck = error "Index <0 or >deck."
@@ -179,13 +189,16 @@ cardPickerHelper n leftDeck rightDeck
   where
     Add c h = rightDeck
 
+-- | Takes a card and a hand and returns true if exists in the hand and false if it doesn't
 belongsTo :: Card -> Hand -> Bool
 c `belongsTo` Empty = False
 c `belongsTo` (Add c' h) = c == c' || c `belongsTo` h
 
+-- | Property assuring that a deck contains the same cards before and after shuffling
 prop_shuffle_sameCards :: StdGen -> Card -> Hand -> Bool
 prop_shuffle_sameCards g c h = c `belongsTo` h == c `belongsTo` shuffleDeck g h
 
+-- | Property assuring that a deck contains the same amount of cards before and after shuffling
 prop_size_shuffle :: StdGen -> Hand -> Bool
 prop_size_shuffle g h = size (shuffleDeck g h) == size h
 
