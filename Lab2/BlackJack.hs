@@ -168,7 +168,8 @@ shuffleDeckHelper shuffled g unshuffled =
   where
     (picked1, newUnshuffled1, g1) = randomCard g unshuffled
 
--- | When given a random number generator and a hand, randomCard returns a randomly picked card 
+-- | When given a random number generator (rng) and a hand,
+-- | randomCard returns the trippel of the picked card, the hand missing that card and a new rng
 randomCard :: StdGen -> Hand -> (Card, Hand, StdGen)
 randomCard g deck = (c, h, g1)
   where
