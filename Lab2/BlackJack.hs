@@ -142,7 +142,7 @@ draw deck h1 = (restDeck, Add drawn h1)
 
 -- B4 Play deck
 
--- | Plays out the game for the bank, standing when reaching a value of 16 or higher
+-- | Plays out the game for the bank, stopping when reaching a value of 16 or higher
 playBank :: Hand -> Hand
 playBank deck = playBankHelper deck Empty
 
@@ -190,7 +190,7 @@ cardPickerHelper n leftDeck rightDeck
   where
     Add c h = rightDeck
 
--- | Takes a card and a hand and returns true if exists in the hand and false if it doesn't
+-- | Takes a card and a hand and returns true if the card is in the hand and false if it doesn't
 belongsTo :: Card -> Hand -> Bool
 c `belongsTo` Empty = False
 c `belongsTo` (Add c' h) = c == c' || c `belongsTo` h
