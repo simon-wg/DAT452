@@ -98,7 +98,8 @@ winner guestHand bankHand
 the top and the first representing the bottom -}
 (<+) :: Hand -> Hand -> Hand
 h1 <+ Empty = h1
-h1 <+ (Add c h2) = Add c (h1 <+ h2)
+Empty <+ h1 = h1
+Add c h1 <+ h2 = Add c (h1 <+ h2)
 
 {- Property that asserts that the hand stacking operator is associative -}
 prop_onTopOf_assoc :: Hand -> Hand -> Hand -> Bool
@@ -117,10 +118,13 @@ suits = [Spades, Diamonds, Clubs, Hearts]
 [Add (Card y x) Empty | x <- suits, y <- ranks]
 -}
 
+allRanks :: [Rank]
 allRanks = [Numeric x | x <- [10, 9 .. 2]] ++ [Jack, Queen, King, Ace]
 
+allSuits :: [Suit]
 allSuits = [Hearts, Clubs, Diamonds, Spades]
 
+fullDeck :: Hand
 fullDeck =
   foldr
     (<+)
@@ -211,6 +215,7 @@ prop_size_shuffle :: StdGen -> Hand -> Bool
 prop_size_shuffle g h = size (shuffleDeck g h) == size h
 
 -- B6 - interface
+implementation :: Interface
 implementation =
   Interface
     { iFullDeck = fullDeck,
