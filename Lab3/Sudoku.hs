@@ -1,6 +1,8 @@
 module Sudoku where
 
 import Test.QuickCheck
+-- | Importing catMaybes, might need to remove later
+import Data.Maybe
 
 ------------------------------------------------------------------------------
 
@@ -36,21 +38,30 @@ example =
 
 -- | allBlankSudoku is a sudoku with just blanks
 allBlankSudoku :: Sudoku
-allBlankSudoku = undefined
+allBlankSudoku = Sudoku (replicate 9 (replicate 9 Nothing))
 
 -- * A2
 
 -- | isSudoku sud checks if sud is really a valid representation of a sudoku
 -- puzzle
 isSudoku :: Sudoku -> Bool
-isSudoku = undefined
+isSudoku (Sudoku []) = True
+isSudoku sudoku      = isSudokuHelper sudoku && (length r == 9) && isSudoku (Sudoku rs)
+   where r:rs = rows sudoku
+
+-- | Helper function that makes sure that all values in a 
+-- | sudoku are either nothing or are in the range 1..9
+isSudokuHelper :: Sudoku -> Bool
+isSudokuHelper sudoku = and $ map (\i -> i>=1 && i<=9) (catMaybes $ concat $ rows sudoku)
 
 -- * A3
 
 -- | isFilled sud checks if sud is completely filled in,
 -- i.e. there are no blanks
 isFilled :: Sudoku -> Bool
-isFilled = undefined
+isFilled (Sudoku []) = True
+isFilled sudoku      = (length $ catMaybes r) == 9 && isSudoku (Sudoku rs)
+   where r:rs = rows sudoku   
 
 ------------------------------------------------------------------------------
 
