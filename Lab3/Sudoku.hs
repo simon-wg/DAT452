@@ -70,7 +70,16 @@ isFilled sudoku      = (length $ catMaybes r) == 9 && isSudoku (Sudoku rs)
 -- | printSudoku sud prints a nice representation of the sudoku sud on
 -- the screen
 printSudoku :: Sudoku -> IO ()
-printSudoku = undefined
+printSudoku sudoku = do putStr $ buildString $ rows sudoku
+
+buildString :: [Row] -> String
+buildString []   = []
+buildString (r:rs) = helper r ++ buildString rs
+
+helper :: [Maybe Int] -> String
+helper []             = "\n"
+helper ((Just i):cs)  = show i ++ helper cs
+helper ((Nothing):cs) = "." ++ helper cs
 
 -- * B2
 
