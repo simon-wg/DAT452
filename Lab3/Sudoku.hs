@@ -157,7 +157,10 @@ prop_blocks_lengths sud = length (blocks sud) == length (rows sud)
 -- * D3
 
 isOkay :: Sudoku -> Bool
-isOkay sud = all isOkayBlock (rows sud) && all isOkayBlock (blocks sud) && isSudoku sud
+isOkay sud =
+  all isOkayBlock (rows sud)
+    && all isOkayBlock (blocks sud)
+    && isSudoku sud
 
 ---- Part A ends here --------------------------------------------------------
 ------------------------------------------------------------------------------
