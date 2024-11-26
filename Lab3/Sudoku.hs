@@ -135,24 +135,26 @@ isOkayBlock block = catMaybes block == nub (catMaybes block)
 
 blocks :: Sudoku -> [Block]
 blocks sud =
-  [ [ rows sud !! (c + i) !! (r + j)
-      | i <- [0 .. 2],
-        j <- [0 .. 2]
-    ]
-    | r <- [0, 3, 6],
-      c <- [0, 3, 6]
-  ]
+  rows sud
+    ++ cols sud
+    ++ [ [ rows sud
+             !! (i + a)
+             !! (j + b)
+           | i <- [0 .. 2],
+             j <- [0 .. 2]
+         ]
+         | a <- [0, 3, 6],
+           b <- [0, 3, 6]
+       ]
 
 prop_blocks_lengths :: Sudoku -> Bool
-prop_blocks_lengths sud = length (blocks sud) == length (rows sud)
+prop_blocks_lengths sud = length (blocks sud) == 27
 
 -- * D3
 
 isOkay :: Sudoku -> Bool
 isOkay sud =
-  all isOkayBlock (rows sud)
-    && all isOkayBlock (cols sud)
-    && all isOkayBlock (blocks sud)
+  all isOkayBlock (blocks sud)
     && isSudoku sud
 
 ---- Part A ends here --------------------------------------------------------
