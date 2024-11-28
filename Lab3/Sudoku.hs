@@ -168,7 +168,26 @@ type Pos = (Int, Int)
 -- * E1
 
 blanks :: Sudoku -> [Pos]
-blanks = undefined
+blanks sud = func 0 (rows sud)
+  where func _ []     = []
+        func i (r:rs) = blanksRow (i,0) r ++ func (i+1) rs
+
+blanksRow :: (Int,Int) -> [Cell] -> [(Int, Int)]
+blanksRow  _         []      = []
+blanksRow (row,col) (c:cs) 
+    | isFilled == True =  blanksRow (row,col+1) cs 
+    | otherwise        = (row,col):blanksRow (row,col+1) cs 
+    where isFilled = isJust c
+
+-- | This is a list of all combinations (x,y) where x and y are 0..8
+{-
+[(0,0),(0,2)...(0.8)]
+[(1,0),(1,2)...(1.8)]
+[...................]
+[(8,0),(8,2)...(8.8)]
+-}
+blankPositions :: [(Int, Int)]
+blankPositions = [(x,y) | x <- [0..8], y <- [0..8]]
 
 -- prop_blanks_allBlanks :: ...
 -- prop_blanks_allBlanks =
