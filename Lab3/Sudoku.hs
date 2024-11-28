@@ -196,16 +196,21 @@ blanksRow (row,col) (c:cs)
 blankPositions :: [(Int, Int)]
 blankPositions = [(x,y) | x <- [0..8], y <- [0..8]]
 
--- prop_blanks_allBlanks :: ...
--- prop_blanks_allBlanks =
+prop_blanks_allBlanks :: Bool
+prop_blanks_allBlanks = blanks allBlankSudoku == blankPositions
 
 -- * E2
 
 (!!=) :: [a] -> (Int, a) -> [a]
-xs !!= (i, y) = undefined
+(x:xs) !!= (i, y)
+  | i <  0 = (x:xs) 
+  | i == 0 = y:xs
+  | i >  0 = x:(xs !!= (i-1,y))
 
--- prop_bangBangEquals_correct :: ...
--- prop_bangBangEquals_correct =
+-- | Assures that given a list of ints and an element to put into that 
+-- | list at index i replaces the element at index i with the new value
+prop_bangBangEquals_correct :: [Int] -> (Int,Int) -> [Int] -> Bool
+prop_bangBangEquals_correct putIn (i, new) answer = (input !!= (i,new)) == answer 
 
 -- * E3
 
