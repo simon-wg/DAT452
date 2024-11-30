@@ -203,19 +203,26 @@ prop_blanks_allBlanks = blanks allBlankSudoku == blankPositions
 
 (!!=) :: [a] -> (Int, a) -> [a]
 (x:xs) !!= (i, y)
-  | i <  0 = (x:xs) 
-  | i == 0 = y:xs
-  | i >  0 = x:(xs !!= (i-1,y))
+  | i <  0            = error "Index must be 0 or greater"
+  | i > length (x:xs) = error "Index greater than length of list - 1"
+  | i == 0            = y:xs
+  | i >  0            = x:(xs !!= (i-1,y))
 
 -- | Assures that given a list of ints and an element to put into that 
 -- | list at index i replaces the element at index i with the new value
 prop_bangBangEquals_correct :: [Int] -> (Int,Int) -> [Int] -> Bool
-prop_bangBangEquals_correct putIn (i, new) answer = (input !!= (i,new)) == answer 
+prop_bangBangEquals_correct putIn (i, new) answer = (putIn !!= (i,new)) == answer 
 
 -- * E3
 
 update :: Sudoku -> Pos -> Cell -> Sudoku
-update = undefined
+update sud pos cell = Sudoku $ func 0 (rows sud) pos cell
+  where func acc (r:rs) (row,col) cell
+          | (row < 0 || col < 0) = error "Invalid position for update: Indexes cannot be negative!"
+          | (row == acc)         = (r !!= (col, cell)):rs
+          | (otherwise)          = r:(func (acc+1) rs (row,col) cell)
+
+
 
 -- prop_update_updated :: ...
 -- prop_update_updated =
