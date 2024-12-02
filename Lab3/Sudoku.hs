@@ -227,14 +227,15 @@ solve :: Sudoku -> Maybe Sudoku
 solve sud
   | solutions == [] = Nothing
   | otherwise       = Just $ head solutions
-    where solutions = solve' sud $ blanks sud
+    where solutions = solve' (blanks sud) sud
 
 
-solve' :: Sudoku -> [Pos] -> [Sudoku]
-solve' sud emptyCells   |
-  | !isSolvable  = []
-  | isFilled sud = sud
-  where isSolvable = isSudoku sud && isOkay sud
+solve' :: [Pos] -> Sudoku -> [Sudoku]
+solve' emptyCells sud
+  | not (isOkay sud && isSudoku sud) = []
+  | emptyCells == []                 = [sud]
+  | otherwise                        = foldr (++) [] $ map (solve' (tail emptyCells)) newList
+  where newList = [update sud (head emptyCells) (Just i) | i <- [1..9]]
 
 -- * F2
 
