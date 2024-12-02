@@ -186,7 +186,7 @@ blanksRow (row,col) (c:cs)
 [...................]
 [(8,0),(8,2)...(8.8)]
 -}
-blankPositions :: [(Int, Int)]
+blankPositions :: [Pos]
 blankPositions = [(x,y) | x <- [0..8], y <- [0..8]]
 
 prop_blanks_allBlanks :: Bool
@@ -217,12 +217,24 @@ update sud pos cell = Sudoku $ func 0 (rows sud) pos cell
 
 
 
--- prop_update_updated :: ...
--- prop_update_updated =
+-- prop_update_updated :: 
+-- prop_update_updated = undefined
 
 ------------------------------------------------------------------------------
 
 -- * F1
+solve :: Sudoku -> Maybe Sudoku
+solve sud
+  | solutions == [] = Nothing
+  | otherwise       = Just $ head solutions
+    where solutions = solve' sud $ blanks sud
+
+
+solve' :: Sudoku -> [Pos] -> [Sudoku]
+solve' sud emptyCells   |
+  | !isSolvable  = []
+  | isFilled sud = sud
+  where isSolvable = isSudoku sud && isOkay sud
 
 -- * F2
 
