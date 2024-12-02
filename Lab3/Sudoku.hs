@@ -245,7 +245,13 @@ solve' emptyCells sud
   where newList = [update sud (head emptyCells) (Just i) | i <- [1..9]]
 
 -- * F2
-
+readAndSolve :: FilePath -> IO()
+readAndSolve fp = 
+  do
+    sud <- readSudoku fp
+    let solved = solve sud
+    if isJust solved then printSudoku (fromJust solved)
+    else putStr "(no solution)\n"
 -- * F3
 
 -- * F4
