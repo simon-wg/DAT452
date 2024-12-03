@@ -176,17 +176,20 @@ type Pos = (Int, Int)
 
 blanks :: Sudoku -> [Pos]
 blanks sud = func 0 (rows sud)
-  where func _ []     = []
-        func i (r:rs) = blanksRow (i,0) r ++ func (i+1) rs
+  where
+    func _ [] = []
+    func i (r : rs) = blanksRow (i, 0) r ++ func (i + 1) rs
 
-blanksRow :: (Int,Int) -> [Cell] -> [(Int, Int)]
-blanksRow  _         []      = []
-blanksRow (row,col) (c:cs) 
-    | isFilled == True =  blanksRow (row,col+1) cs 
-    | otherwise        = (row,col):blanksRow (row,col+1) cs 
-    where isFilled = isJust c
+blanksRow :: (Int, Int) -> [Cell] -> [(Int, Int)]
+blanksRow _ [] = []
+blanksRow (row, col) (c : cs)
+  | isFilled = blanksRow (row, col + 1) cs
+  | otherwise = (row, col) : blanksRow (row, col + 1) cs
+  where
+    isFilled = isJust c
 
 -- | This is a list of all combinations (x,y) where x and y are 0..8
+
 {-
 [(0,0),(0,2)...(0.8)]
 [(1,0),(1,2)...(1.8)]
@@ -194,7 +197,7 @@ blanksRow (row,col) (c:cs)
 [(8,0),(8,2)...(8.8)]
 -}
 blankPositions :: [Pos]
-blankPositions = [(x,y) | x <- [0..8], y <- [0..8]]
+blankPositions = [(x, y) | x <- [0 .. 8], y <- [0 .. 8]]
 
 prop_blanks_allBlanks :: Bool
 prop_blanks_allBlanks = blanks allBlankSudoku == blankPositions
@@ -202,56 +205,60 @@ prop_blanks_allBlanks = blanks allBlankSudoku == blankPositions
 -- * E2
 
 (!!=) :: [a] -> (Int, a) -> [a]
-(x:xs) !!= (i, y)
-  | i <  0            = error "Index must be 0 or greater"
-  | i > length (x:xs) = error "Index greater than length of list - 1"
-  | i == 0            = y:xs
-  | i >  0            = x:(xs !!= (i-1,y))
+(x : xs) !!= (i, y)
+  | i < 0 = error "Index must be 0 or greater"
+  | i > length (x : xs) = error "Index greater than length of list - 1"
+  | i == 0 = y : xs
+  | i > 0 = x : (xs !!= (i - 1, y))
 
--- | Assures that given a list of ints and an element to put into that 
+-- | Assures that given a list of ints and an element to put into that
 -- | list at index i replaces the element at index i with the new value
-prop_bangBangEquals_correct :: [Int] -> (Int,Int) -> [Int] -> Bool
-prop_bangBangEquals_correct putIn (i, new) answer = (putIn !!= (i,new)) == answer 
+prop_bangBangEquals_correct :: [Int] -> (Int, Int) -> [Int] -> Bool
+prop_bangBangEquals_correct putIn (i, new) answer = (putIn !!= (i, new)) == answer
 
 -- * E3
 
 update :: Sudoku -> Pos -> Cell -> Sudoku
 update sud pos cell = Sudoku $ func 0 (rows sud) pos cell
-  where func acc (r:rs) (row,col) cell
-          | (row < 0 || col < 0) = error "Invalid position for update: Indexes cannot be negative!"
-          | (row == acc)         = (r !!= (col, cell)):rs
-          | (otherwise)          = r:(func (acc+1) rs (row,col) cell)
+  where
+    func acc (r : rs) (row, col) cell
+      | row < 0 || col < 0 = error "Invalid position for update: Indexes cannot be negative!"
+      | row == acc = (r !!= (col, cell)) : rs
+      | otherwise = r : func (acc + 1) rs (row, col) cell
 
-
-
--- prop_update_updated :: 
--- prop_update_updated = undefined
+prop_update_updated :: Sudoku -> Bool
+prop_update_updated s1 = update s1 (0, 0) (Just 1) /= s1 || head (head (rows s1)) == Just 1
 
 ------------------------------------------------------------------------------
 
 -- * F1
+
 solve :: Sudoku -> Maybe Sudoku
 solve sud
-  | solutions == [] = Nothing
-  | otherwise       = Just $ head solutions
-    where solutions = solve' (blanks sud) sud
-
+  | null solutions = Nothing
+  | otherwise = Just $ head solutions
+  where
+    solutions = solve' (blanks sud) sud
 
 solve' :: [Pos] -> Sudoku -> [Sudoku]
 solve' emptyCells sud
   | not (isOkay sud && isSudoku sud) = []
-  | emptyCells == []                 = [sud]
-  | otherwise                        = foldr (++) [] $ map (solve' (tail emptyCells)) newList
-  where newList = [update sud (head emptyCells) (Just i) | i <- [1..9]]
+  | null emptyCells = [sud]
+  | otherwise = concatMap (solve' (tail emptyCells)) newList
+  where
+    newList = [update sud (head emptyCells) (Just i) | i <- [1 .. 9]]
 
 -- * F2
-readAndSolve :: FilePath -> IO()
-readAndSolve fp = 
+
+readAndSolve :: FilePath -> IO ()
+readAndSolve fp =
   do
     sud <- readSudoku fp
     let solved = solve sud
-    if isJust solved then printSudoku (fromJust solved)
-    else putStr "(no solution)\n"
+    if isJust solved
+      then printSudoku (fromJust solved)
+      else putStr "(no solution)\n"
+
 -- * F3
 
 -- * F4
