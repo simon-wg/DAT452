@@ -137,18 +137,25 @@ blocks :: Sudoku -> [Block]
 blocks sud =
   rows sud
     ++ cols sud
-    ++ [ [ rows sud
-             !! (i + a)
-             !! (j + b)
-           | i <- [0 .. 2],
-             j <- [0 .. 2]
-         ]
-         | a <- [0, 3, 6],
-           b <- [0, 3, 6]
-       ]
+    ++ realBlocks sud
+
+realBlocks :: Sudoku -> [Block]
+realBlocks sud =
+  [ [ rows sud
+        !! (i + a)
+        !! (j + b)
+      | i <- [0 .. 2],
+        j <- [0 .. 2]
+    ]
+    | a <- [0, 3, 6],
+      b <- [0, 3, 6]
+  ]
 
 prop_blocks_lengths :: Sudoku -> Bool
-prop_blocks_lengths sud = length (blocks sud) == 27
+prop_blocks_lengths sud =
+  length (rows sud) == 9
+    && length (cols sud) == 9
+    && length (realBlocks sud) == 9
 
 -- * D3
 
