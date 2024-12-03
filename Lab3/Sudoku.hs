@@ -1,5 +1,3 @@
-module Sudoku where
-
 import Data.List (nub, transpose)
 import Data.Maybe
 import Test.QuickCheck
@@ -205,16 +203,17 @@ prop_blanks_allBlanks = blanks allBlankSudoku == blankPositions
 -- * E2
 
 (!!=) :: [a] -> (Int, a) -> [a]
+[] !!= _ = error "Index out of bounds"
 (x : xs) !!= (i, y)
   | i < 0 = error "Index must be 0 or greater"
-  | i > length (x : xs) = error "Index greater than length of list - 1"
+  | i >= length (x : xs) = error "Index greater than length of list - 1"
   | i == 0 = y : xs
   | i > 0 = x : (xs !!= (i - 1, y))
 
 -- | Assures that given a list of ints and an element to put into that
 -- | list at index i replaces the element at index i with the new value
-prop_bangBangEquals_correct :: [Int] -> (Int, Int) -> [Int] -> Bool
-prop_bangBangEquals_correct putIn (i, new) answer = (putIn !!= (i, new)) == answer
+prop_bangBangEquals_correct :: [Int] -> (Int, Int) -> Property
+prop_bangBangEquals_correct putIn (i, new) = i >= 0 ==> length putIn > i ==> putIn !!= (i, new) !! i == new
 
 -- * E3
 
@@ -255,10 +254,36 @@ readAndSolve fp =
   do
     sud <- readSudoku fp
     let solved = solve sud
-    if isJust solved
-      then printSudoku (fromJust solved)
-      else putStr "(no solution)\n"
+    maybe (putStr "(no solution)\n") printSudoku solved
 
 -- * F3
 
+isSolutionOf :: Sudoku -> Sudoku -> Bool
+isSolutionOf s1 s2 = allRowsSameOrJust (rows s1) (rows s2)
+  where
+    allRowsSameOrJust [] [] = True
+    allRowsSameOrJust (r1 : rs1) (r2 : rs2)
+      | allCellsSameOrJust r1 r2 = allRowsSameOrJust rs1 rs2
+      | otherwise = False
+    allCellsSameOrJust [] [] = True
+    allCellsSameOrJust (c1 : cs1) (c2 : cs2)
+      | c1 == c2 = allCellsSameOrJust cs1 cs2
+      | isNothing c2 = allCellsSameOrJust cs1 cs2
+      | otherwise = False
+
 -- * F4
+
+prop_SolveSound :: Sudoku -> Property
+prop_SolveSound s = isOkay s ==> isSolutionOf (fromJust (solve s)) s
+
+fewerChecks prop = quickCheckWith stdArgs {maxSuccess = 30} prop
+
+main :: IO ()
+main = do
+  quickCheck prop_Sudoku
+  quickCheck prop_blocks_lengths
+  quickCheck prop_blanks_allBlanks
+  quickCheck prop_bangBangEquals_correct
+  quickCheck prop_update_updated
+  fewerChecks prop_SolveSound
+  putStrLn "All tests passed!"
