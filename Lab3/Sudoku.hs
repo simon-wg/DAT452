@@ -247,4 +247,14 @@ readAndSolve fp =
     else putStr "(no solution)\n"
 -- * F3
 
+isSolutionOf :: Sudoku -> Sudoku -> Bool
+isSolutionOf (Sudoku []) (Sudoku [])             = True
+isSolutionOf (Sudoku (r1:r1s)) (Sudoku (r2:r2s)) = isSolHelper r1 r2 && isSolutionOf (Sudoku r1s) (Sudoku r2s)
+  where isSolHelper [] []             = True
+        isSolHelper (c1:c1s) (c2:c2s) | isNothing c2 = isSolHelper c1s c2s
+                                      | c1 == c2     = isSolHelper c1s c2s
+                                      | otherwise    = False 
+
 -- * F4
+
+prop_SolveSound :: Sudoku -> Property
