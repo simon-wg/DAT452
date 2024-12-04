@@ -1,3 +1,5 @@
+module Sudoku where
+
 import Data.List (nub, transpose)
 import Data.Maybe
 import Test.QuickCheck
@@ -114,7 +116,7 @@ instance Arbitrary Sudoku where
 -- hint: get to know the QuickCheck function vectorOf
 
 -- * C3
-
+-- | Assures that a sudoku is in fact a valid sudoku
 prop_Sudoku :: Sudoku -> Bool
 prop_Sudoku = isSudoku
 
@@ -125,18 +127,20 @@ prop_Sudoku = isSudoku
 type Block = [Cell] -- a Row is also a Cell
 
 -- * D1
-
+-- | Function checking whether a 3 by 3 block of a sudoku does not contain duplicate numbers
 isOkayBlock :: Block -> Bool
 isOkayBlock block = catMaybes block == nub (catMaybes block)
 
 -- * D2
 
+-- | Takes a sudoku and returns it in the form of 9 rows, 9 columns and 9 3x3 blocks
 blocks :: Sudoku -> [Block]
 blocks sud =
   rows sud
     ++ cols sud
     ++ realBlocks sud
 
+-- | Helper function for blocks that takes a sudoku and returns its 9 3x3 blocks
 realBlocks :: Sudoku -> [Block]
 realBlocks sud =
   [ [ rows sud
@@ -149,12 +153,13 @@ realBlocks sud =
       b <- [0, 3, 6]
   ]
 
+-- | Prop assuring that the rows, columns and blocks all contain 9 elements
 prop_blocks_lengths :: Sudoku -> Bool
-prop_blocks_lengths sud = (all (\r -> length r == 9) blockRowCol) && length blockRowCol == 27
-  where blockRowCol = blocks sud
+prop_blocks_lengths sud = (all (\r -> length r == 9) $ blocks sud)
 
 -- * D3
-
+-- | Takes a sudoku and checks whether it is a valid sudoku 
+-- | (no duplicate numbers in rows, columns or blocks and is a 9x9 shape)
 isOkay :: Sudoku -> Bool
 isOkay sud =
   all isOkayBlock (blocks sud)
@@ -169,13 +174,14 @@ isOkay sud =
 type Pos = (Int, Int)
 
 -- * E1
-
+-- | Takes a sudoku and returns a list of all positions in the sudoku that are still empty
 blanks :: Sudoku -> [Pos]
 blanks sud = func 0 (rows sud)
   where
     func _ [] = []
     func i (r : rs) = blanksRow (i, 0) r ++ func (i + 1) rs
 
+-- | Helper function for blanks to iterate through a row and add all empty spaces to a list
 blanksRow :: (Int, Int) -> [Cell] -> [(Int, Int)]
 blanksRow _ [] = []
 blanksRow (row, col) (c : cs)
@@ -185,7 +191,6 @@ blanksRow (row, col) (c : cs)
     isFilled = isJust c
 
 -- | This is a list of all combinations (x,y) where x and y are 0..8
-
 {-
 [(0,0),(0,2)...(0.8)]
 [(1,0),(1,2)...(1.8)]
@@ -195,11 +200,13 @@ blanksRow (row, col) (c : cs)
 blankPositions :: [Pos]
 blankPositions = [(x, y) | x <- [0 .. 8], y <- [0 .. 8]]
 
+-- | Assures that the blank sudoku returns all its positions when asking for its blank positions
 prop_blanks_allBlanks :: Bool
 prop_blanks_allBlanks = blanks allBlankSudoku == blankPositions
 
 -- * E2
-
+-- | Given a list of items and an index, item pair will put the item at the index in the list
+-- | Throws an error when used with incorrect indexes or when used on an empty list
 (!!=) :: [a] -> (Int, a) -> [a]
 [] !!= _ = error "Index out of bounds"
 (x : xs) !!= (i, y)
@@ -214,7 +221,7 @@ prop_bangBangEquals_correct :: [Int] -> (Int, Int) -> Property
 prop_bangBangEquals_correct putIn (i, new) = i >= 0 ==> length putIn > i ==> putIn !!= (i, new) !! i == new
 
 -- * E3
-
+-- | When given a sudoku, a position and a cell to insert will put that cell at the specified position
 update :: Sudoku -> Pos -> Cell -> Sudoku
 update sud pos cell = Sudoku $ func 0 (rows sud) pos cell
   where
@@ -223,13 +230,16 @@ update sud pos cell = Sudoku $ func 0 (rows sud) pos cell
       | row == acc = (r !!= (col, cell)) : rs
       | otherwise = r : func (acc + 1) rs (row, col) cell
 
+-- | Assures that a sudoku when updated with a new cell will either be changed
+-- | or that it has been updated with the same cell it had
 prop_update_updated :: Sudoku -> Bool
 prop_update_updated s1 = update s1 (0, 0) (Just 1) /= s1 || head (head (rows s1)) == Just 1
 
 ------------------------------------------------------------------------------
 
 -- * F1
-
+-- | When given a sudoku will compute all solutions to the sudoku and return the first one.
+-- | If no solutions exist it will instead return Nothing
 solve :: Sudoku -> Maybe Sudoku
 solve sud
   | null solutions = Nothing
@@ -237,6 +247,10 @@ solve sud
   where
     solutions = solve' (blanks sud) sud
 
+-- | Helper function for the solve function to solve parts of the sudoku recursively.
+-- | If the sudoku being solved is invalid returns an empty list
+-- | If the sudoku being solved has no empty cells it is a valid solution
+-- | Otherwise solve the next empty position in 9 different ways recursively
 solve' :: [Pos] -> Sudoku -> [Sudoku]
 solve' emptyCells sud
   | not (isOkay sud && isSudoku sud) = []
@@ -247,6 +261,7 @@ solve' emptyCells sud
 
 -- * F2
 
+-- | Reads a sudoku from a file and prints the first solution for it in the terminal
 readAndSolve :: FilePath -> IO ()
 readAndSolve fp =
   do
@@ -256,6 +271,9 @@ readAndSolve fp =
 
 -- * F3
 
+-- | Checks whether one sudoku is a solution of a different sudoku
+-- | by checking that every element in every row matches, disregarding cells where 
+-- | the solved sudoku has a number and the other sudoku has nothing
 isSolutionOf :: Sudoku -> Sudoku -> Bool
 isSolutionOf s1 s2 = allRowsSameOrJust (rows s1) (rows s2)
   where
@@ -271,6 +289,7 @@ isSolutionOf s1 s2 = allRowsSameOrJust (rows s1) (rows s2)
 
 -- * F4
 
+-- | Prop that assures that every solved sudoku is a solution of a generated sudoku
 prop_SolveSound :: Sudoku -> Property
 prop_SolveSound s = isOkay s ==> isSolutionOf (fromJust (solve s)) s
 
