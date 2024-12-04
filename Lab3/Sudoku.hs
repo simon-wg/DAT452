@@ -150,7 +150,7 @@ realBlocks sud =
   ]
 
 prop_blocks_lengths :: Sudoku -> Bool
-prop_blocks_lengths sud = and (map (\r -> length r == 9) (blockRowCol)) && length blockRowCol == 27
+prop_blocks_lengths sud = (all (\r -> length r == 9) blockRowCol) && length blockRowCol == 27
   where blockRowCol = blocks sud
 
 -- * D3
@@ -275,13 +275,3 @@ prop_SolveSound :: Sudoku -> Property
 prop_SolveSound s = isOkay s ==> isSolutionOf (fromJust (solve s)) s
 
 fewerChecks prop = quickCheckWith stdArgs {maxSuccess = 30} prop
-
-main :: IO ()
-main = do
-  quickCheck prop_Sudoku
-  quickCheck prop_blocks_lengths
-  quickCheck prop_blanks_allBlanks
-  quickCheck prop_bangBangEquals_correct
-  quickCheck prop_update_updated
-  fewerChecks prop_SolveSound
-  putStrLn "All tests passed!"
