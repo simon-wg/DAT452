@@ -150,7 +150,8 @@ realBlocks sud =
   ]
 
 prop_blocks_lengths :: Sudoku -> Bool
-prop_blocks_lengths sud = and (map (\r -> length r == 9) (blocks sud))
+prop_blocks_lengths sud = and (map (\r -> length r == 9) (blockRowCol)) && length blockRowCol == 27
+  where blockRowCol = blocks sud
 
 -- * D3
 
