@@ -1,6 +1,7 @@
 module Sudoku where
 
-import Data.List (nub)
+import Data.List (nub, transpose)
+import Data.Maybe
 import Test.QuickCheck
 
 ------------------------------------------------------------------------------
@@ -15,6 +16,9 @@ data Sudoku = Sudoku [Row]
 
 rows :: Sudoku -> [Row]
 rows (Sudoku ms) = ms
+
+cols :: Sudoku -> [Row]
+cols = transpose . rows
 
 -- | A sample sudoku puzzle
 example :: Sudoku
@@ -38,29 +42,25 @@ example =
 
 -- | allBlankSudoku is a sudoku with just blanks
 allBlankSudoku :: Sudoku
-allBlankSudoku = Sudoku [[Nothing | _ <- [1 .. 9]] | _ <- [1 .. 9]]
+allBlankSudoku = Sudoku (replicate 9 (replicate 9 Nothing))
 
 -- * A2
 
 -- | isSudoku sud checks if sud is really a valid representation of a sudoku
 -- puzzle
 isSudoku :: Sudoku -> Bool
-isSudoku = all validRow . rows
-  where
-    validRow row = length row == 9 && all validCell row
-    validCell Nothing = True
-    validCell (Just n) = n >= 1 && n <= 9
+isSudoku sudoku =
+  length (cols sudoku) == 9
+    && all (all (\i -> i >= 1 && i <= 9) . catMaybes) (rows sudoku)
+    && length (rows sudoku) == 9
 
 -- * A3
 
 -- | isFilled sud checks if sud is completely filled in,
 -- i.e. there are no blanks
 isFilled :: Sudoku -> Bool
-isFilled = all filledRow . rows
-  where
-    filledRow = all filledCell
-    filledCell Nothing = False
-    filledCell (Just _) = True
+isFilled (Sudoku []) = True
+isFilled sud = isSudoku sud && all ((== 9) . length . catMaybes) (rows sud)
 
 ------------------------------------------------------------------------------
 
@@ -69,18 +69,15 @@ isFilled = all filledRow . rows
 -- | printSudoku sud prints a nice representation of the sudoku sud on
 -- the screen
 printSudoku :: Sudoku -> IO ()
-printSudoku = putAllRows . rows
-  where
-    putAllRows [] = return ()
-    putAllRows (r : rs) = do
-      putRow r
-      putAllRows rs
-    putRow [] = putStrLn ""
-    putRow (c : cs) = do
-      putCell c
-      putRow cs
-    putCell Nothing = putStr "."
-    putCell (Just n) = putStr $ show n
+printSudoku sudoku = do putStr $ buildString $ rows sudoku
+
+buildString :: [Row] -> String
+buildString = concatMap helper
+
+helper :: [Maybe Int] -> String
+helper [] = "\n"
+helper ((Just i) : cs) = show i ++ helper cs
+helper (Nothing : cs) = "." ++ helper cs
 
 -- * B2
 
@@ -132,24 +129,27 @@ type Block = [Cell] -- a Row is also a Cell
 -- * D1
 
 isOkayBlock :: Block -> Bool
-isOkayBlock block = filter isJust block == nub (filter isJust block)
-  where
-    isJust (Just _) = True
-    isJust Nothing = False
+isOkayBlock block = catMaybes block == nub (catMaybes block)
 
 -- * D2
 
 blocks :: Sudoku -> [Block]
 blocks sud =
-  [ [ rows' !! (r + i) !! (c + j)
+  rows sud
+    ++ cols sud
+    ++ realBlocks sud
+
+realBlocks :: Sudoku -> [Block]
+realBlocks sud =
+  [ [ rows sud
+        !! (i + a)
+        !! (j + b)
       | i <- [0 .. 2],
         j <- [0 .. 2]
     ]
-    | r <- [0, 3, 6],
-      c <- [0, 3, 6]
+    | a <- [0, 3, 6],
+      b <- [0, 3, 6]
   ]
-  where
-    rows' = rows sud
 
 prop_blocks_lengths :: Sudoku -> Bool
 prop_blocks_lengths sud = and (map (\r -> length r == 9) (blockRowCol)) && length blockRowCol == 27
@@ -159,8 +159,7 @@ prop_blocks_lengths sud = and (map (\r -> length r == 9) (blockRowCol)) && lengt
 
 isOkay :: Sudoku -> Bool
 isOkay sud =
-  all isOkayBlock (rows sud)
-    && all isOkayBlock (blocks sud)
+  all isOkayBlock (blocks sud)
     && isSudoku sud
 
 ---- Part A ends here --------------------------------------------------------
