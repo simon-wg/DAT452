@@ -1,6 +1,6 @@
 module Sudoku where
 
-import Data.List (nub, transpose)
+import Data.List (nub, transpose, delete)
 import Data.Maybe
 import Test.QuickCheck
 
@@ -82,18 +82,23 @@ helper (Nothing : cs) = "." ++ helper cs
 -- * B2
 
 -- | readSudoku file reads from the file, and either delivers it, or stops
--- if the file did not contain a sudoku
+-- | if the file did not contain a sudoku
 readSudoku :: FilePath -> IO Sudoku
 readSudoku fp =
   do
     content <- readFile fp
-    let sudoku = Sudoku $ [map readCell row | row <- lines content]
+    let sudoku = Sudoku ([map readCell $ delete '\r' row | row <- lines content])
     if isSudoku sudoku
       then return sudoku
       else error "Invalid Sudoku"
   where
-    readCell '.' = Nothing
-    readCell c = Just (read [c])
+    readCell c | c == '.'  = Nothing
+               | otherwise = Just (read [c])
+
+readCell :: Char -> Cell
+readCell c 
+  | c == '.'  = Nothing
+  | otherwise = Just $ read [c]
 
 ------------------------------------------------------------------------------
 
@@ -155,7 +160,7 @@ realBlocks sud =
 
 -- | Prop assuring that the rows, columns and blocks all contain 9 elements
 prop_blocks_lengths :: Sudoku -> Bool
-prop_blocks_lengths sud = (all (\r -> length r == 9) $ blocks sud)
+prop_blocks_lengths sud = all (\r -> length r == 9) $ blocks sud
 
 -- * D3
 -- | Takes a sudoku and checks whether it is a valid sudoku 
@@ -208,7 +213,7 @@ prop_blanks_allBlanks = blanks allBlankSudoku == blankPositions
 -- | Given a list of items and an index, item pair will put the item at the index in the list
 -- | Throws an error when used with incorrect indexes or when used on an empty list
 (!!=) :: [a] -> (Int, a) -> [a]
-[] !!= _ = error "Index out of bounds"
+[] !!= (_,_) = error "Index out of bounds"
 (x : xs) !!= (i, y)
   | i < 0 = error "Index must be 0 or greater"
   | i >= length (x : xs) = error "Index greater than length of list - 1"
@@ -275,7 +280,7 @@ readAndSolve fp =
 -- | by checking that every element in every row matches, disregarding cells where 
 -- | the solved sudoku has a number and the other sudoku has nothing
 isSolutionOf :: Sudoku -> Sudoku -> Bool
-isSolutionOf s1 s2 = allRowsSameOrJust (rows s1) (rows s2)
+isSolutionOf s1 s2 = null (blanks s1) && allRowsSameOrJust (rows s1) (rows s2)
   where
     allRowsSameOrJust [] [] = True
     allRowsSameOrJust (r1 : rs1) (r2 : rs2)
