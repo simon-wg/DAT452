@@ -1,6 +1,9 @@
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+
+{-# HLINT ignore "Use newtype instead of data" #-}
 module Sudoku where
 
-import Data.List (nub, transpose, delete)
+import Data.List (nub, transpose)
 import Data.Maybe
 import Test.QuickCheck
 
@@ -63,6 +66,10 @@ isFilled (Sudoku []) = True
 isFilled sud = isSudoku sud && all ((== 9) . length . catMaybes) (rows sud)
 
 ------------------------------------------------------------------------------
+{-
+        expected: "364871295\n752936184\n819254736\n596713428\n431582679\n278469351\n645328917\n983147562\n127695843"
+         but got: "..........................364871295\n752936184\n819254736\n596713428\n431582679\n278469351\n645328917\n983147562\n127695843"
+-}
 
 -- * B1
 
@@ -87,17 +94,24 @@ readSudoku :: FilePath -> IO Sudoku
 readSudoku fp =
   do
     content <- readFile fp
-    let sudoku = Sudoku ([map readCell $ delete '\r' row | row <- lines content])
+    let sudoku =
+          Sudoku
+            -- \| Added filtering out of invalid characters in the sudoku
+            ( [ map readCell $ filter (`elem` ".123456789") row
+                | row <- lines content
+              ]
+            )
     if isSudoku sudoku
       then return sudoku
       else error "Invalid Sudoku"
   where
-    readCell c | c == '.'  = Nothing
-               | otherwise = Just (read [c])
+    readCell c
+      | c == '.' = Nothing
+      | otherwise = Just (read [c])
 
 readCell :: Char -> Cell
-readCell c 
-  | c == '.'  = Nothing
+readCell c
+  | c == '.' = Nothing
   | otherwise = Just $ read [c]
 
 ------------------------------------------------------------------------------
@@ -121,6 +135,7 @@ instance Arbitrary Sudoku where
 -- hint: get to know the QuickCheck function vectorOf
 
 -- * C3
+
 -- | Assures that a sudoku is in fact a valid sudoku
 prop_Sudoku :: Sudoku -> Bool
 prop_Sudoku = isSudoku
@@ -132,6 +147,7 @@ prop_Sudoku = isSudoku
 type Block = [Cell] -- a Row is also a Cell
 
 -- * D1
+
 -- | Function checking whether a 3 by 3 block of a sudoku does not contain duplicate numbers
 isOkayBlock :: Block -> Bool
 isOkayBlock block = catMaybes block == nub (catMaybes block)
@@ -163,7 +179,8 @@ prop_blocks_lengths :: Sudoku -> Bool
 prop_blocks_lengths sud = all (\r -> length r == 9) $ blocks sud
 
 -- * D3
--- | Takes a sudoku and checks whether it is a valid sudoku 
+
+-- | Takes a sudoku and checks whether it is a valid sudoku
 -- | (no duplicate numbers in rows, columns or blocks and is a 9x9 shape)
 isOkay :: Sudoku -> Bool
 isOkay sud =
@@ -179,6 +196,7 @@ isOkay sud =
 type Pos = (Int, Int)
 
 -- * E1
+
 -- | Takes a sudoku and returns a list of all positions in the sudoku that are still empty
 blanks :: Sudoku -> [Pos]
 blanks sud = func 0 (rows sud)
@@ -196,6 +214,7 @@ blanksRow (row, col) (c : cs)
     isFilled = isJust c
 
 -- | This is a list of all combinations (x,y) where x and y are 0..8
+
 {-
 [(0,0),(0,2)...(0.8)]
 [(1,0),(1,2)...(1.8)]
@@ -210,22 +229,28 @@ prop_blanks_allBlanks :: Bool
 prop_blanks_allBlanks = blanks allBlankSudoku == blankPositions
 
 -- * E2
+
 -- | Given a list of items and an index, item pair will put the item at the index in the list
 -- | Throws an error when used with incorrect indexes or when used on an empty list
 (!!=) :: [a] -> (Int, a) -> [a]
-[] !!= (_,_) = error "Index out of bounds"
+[] !!= _ = error "Index out of bounds"
 (x : xs) !!= (i, y)
   | i < 0 = error "Index must be 0 or greater"
-  | i >= length (x : xs) = error "Index greater than length of list - 1"
   | i == 0 = y : xs
-  | i > 0 = x : (xs !!= (i - 1, y))
+  | otherwise = x : (xs !!= (i - 1, y))
 
 -- | Assures that given a list of ints and an element to put into that
 -- | list at index i replaces the element at index i with the new value
 prop_bangBangEquals_correct :: [Int] -> (Int, Int) -> Property
-prop_bangBangEquals_correct putIn (i, new) = i >= 0 ==> length putIn > i ==> putIn !!= (i, new) !! i == new
+prop_bangBangEquals_correct putIn (i, new) =
+  i
+    >= 0
+      ==> length putIn
+    > i ==> putIn !!= (i, new) !! i
+    == new
 
 -- * E3
+
 -- | When given a sudoku, a position and a cell to insert will put that cell at the specified position
 update :: Sudoku -> Pos -> Cell -> Sudoku
 update sud pos cell = Sudoku $ func 0 (rows sud) pos cell
@@ -234,6 +259,7 @@ update sud pos cell = Sudoku $ func 0 (rows sud) pos cell
       | row < 0 || col < 0 = error "Invalid position for update: Indexes cannot be negative!"
       | row == acc = (r !!= (col, cell)) : rs
       | otherwise = r : func (acc + 1) rs (row, col) cell
+    func _ [] _ _ = error "Invalid position for update: Indexes out of bounds!"
 
 -- | Assures that a sudoku when updated with a new cell will either be changed
 -- | or that it has been updated with the same cell it had
@@ -243,6 +269,7 @@ prop_update_updated s1 = update s1 (0, 0) (Just 1) /= s1 || head (head (rows s1)
 ------------------------------------------------------------------------------
 
 -- * F1
+
 -- | When given a sudoku will compute all solutions to the sudoku and return the first one.
 -- | If no solutions exist it will instead return Nothing
 solve :: Sudoku -> Maybe Sudoku
@@ -277,7 +304,7 @@ readAndSolve fp =
 -- * F3
 
 -- | Checks whether one sudoku is a solution of a different sudoku
--- | by checking that every element in every row matches, disregarding cells where 
+-- | by checking that every element in every row matches, disregarding cells where
 -- | the solved sudoku has a number and the other sudoku has nothing
 isSolutionOf :: Sudoku -> Sudoku -> Bool
 isSolutionOf s1 s2 = null (blanks s1) && allRowsSameOrJust (rows s1) (rows s2)
@@ -286,11 +313,13 @@ isSolutionOf s1 s2 = null (blanks s1) && allRowsSameOrJust (rows s1) (rows s2)
     allRowsSameOrJust (r1 : rs1) (r2 : rs2)
       | allCellsSameOrJust r1 r2 = allRowsSameOrJust rs1 rs2
       | otherwise = False
+    allRowsSameOrJust _ _ = False
     allCellsSameOrJust [] [] = True
     allCellsSameOrJust (c1 : cs1) (c2 : cs2)
       | c1 == c2 = allCellsSameOrJust cs1 cs2
       | isNothing c2 = allCellsSameOrJust cs1 cs2
       | otherwise = False
+    allCellsSameOrJust _ _ = False
 
 -- * F4
 
@@ -298,4 +327,5 @@ isSolutionOf s1 s2 = null (blanks s1) && allRowsSameOrJust (rows s1) (rows s2)
 prop_SolveSound :: Sudoku -> Property
 prop_SolveSound s = isOkay s ==> isSolutionOf (fromJust (solve s)) s
 
-fewerChecks prop = quickCheckWith stdArgs {maxSuccess = 30} prop
+fewerChecks :: (Testable prop) => prop -> IO ()
+fewerChecks = quickCheckWith stdArgs {maxSuccess = 30}
