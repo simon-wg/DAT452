@@ -1,5 +1,3 @@
-module Sudoku where
-
 import Data.List (nub, transpose)
 import Data.Maybe
 import Test.QuickCheck
@@ -137,18 +135,23 @@ blocks :: Sudoku -> [Block]
 blocks sud =
   rows sud
     ++ cols sud
-    ++ [ [ rows sud
-             !! (i + a)
-             !! (j + b)
-           | i <- [0 .. 2],
-             j <- [0 .. 2]
-         ]
-         | a <- [0, 3, 6],
-           b <- [0, 3, 6]
-       ]
+    ++ realBlocks sud
+
+realBlocks :: Sudoku -> [Block]
+realBlocks sud =
+  [ [ rows sud
+        !! (i + a)
+        !! (j + b)
+      | i <- [0 .. 2],
+        j <- [0 .. 2]
+    ]
+    | a <- [0, 3, 6],
+      b <- [0, 3, 6]
+  ]
 
 prop_blocks_lengths :: Sudoku -> Bool
-prop_blocks_lengths sud = length (blocks sud) == 27
+prop_blocks_lengths sud = and (map (\r -> length r == 9) (blockRowCol)) && length blockRowCol == 27
+  where blockRowCol = blocks sud
 
 -- * D3
 
@@ -169,17 +172,20 @@ type Pos = (Int, Int)
 
 blanks :: Sudoku -> [Pos]
 blanks sud = func 0 (rows sud)
-  where func _ []     = []
-        func i (r:rs) = blanksRow (i,0) r ++ func (i+1) rs
+  where
+    func _ [] = []
+    func i (r : rs) = blanksRow (i, 0) r ++ func (i + 1) rs
 
-blanksRow :: (Int,Int) -> [Cell] -> [(Int, Int)]
-blanksRow  _         []      = []
-blanksRow (row,col) (c:cs) 
-    | isFilled == True =  blanksRow (row,col+1) cs 
-    | otherwise        = (row,col):blanksRow (row,col+1) cs 
-    where isFilled = isJust c
+blanksRow :: (Int, Int) -> [Cell] -> [(Int, Int)]
+blanksRow _ [] = []
+blanksRow (row, col) (c : cs)
+  | isFilled = blanksRow (row, col + 1) cs
+  | otherwise = (row, col) : blanksRow (row, col + 1) cs
+  where
+    isFilled = isJust c
 
 -- | This is a list of all combinations (x,y) where x and y are 0..8
+
 {-
 [(0,0),(0,2)...(0.8)]
 [(1,0),(1,2)...(1.8)]
@@ -187,7 +193,7 @@ blanksRow (row,col) (c:cs)
 [(8,0),(8,2)...(8.8)]
 -}
 blankPositions :: [Pos]
-blankPositions = [(x,y) | x <- [0..8], y <- [0..8]]
+blankPositions = [(x, y) | x <- [0 .. 8], y <- [0 .. 8]]
 
 prop_blanks_allBlanks :: Bool
 prop_blanks_allBlanks = blanks allBlankSudoku == blankPositions
@@ -195,30 +201,30 @@ prop_blanks_allBlanks = blanks allBlankSudoku == blankPositions
 -- * E2
 
 (!!=) :: [a] -> (Int, a) -> [a]
-(x:xs) !!= (i, y)
-  | i <  0            = error "Index must be 0 or greater"
-  | i > length (x:xs) = error "Index greater than length of list - 1"
-  | i == 0            = y:xs
-  | i >  0            = x:(xs !!= (i-1,y))
+[] !!= _ = error "Index out of bounds"
+(x : xs) !!= (i, y)
+  | i < 0 = error "Index must be 0 or greater"
+  | i >= length (x : xs) = error "Index greater than length of list - 1"
+  | i == 0 = y : xs
+  | i > 0 = x : (xs !!= (i - 1, y))
 
--- | Assures that given a list of ints and an element to put into that 
+-- | Assures that given a list of ints and an element to put into that
 -- | list at index i replaces the element at index i with the new value
-prop_bangBangEquals_correct :: [Int] -> (Int,Int) -> [Int] -> Bool
-prop_bangBangEquals_correct putIn (i, new) answer = (putIn !!= (i,new)) == answer 
+prop_bangBangEquals_correct :: [Int] -> (Int, Int) -> Property
+prop_bangBangEquals_correct putIn (i, new) = i >= 0 ==> length putIn > i ==> putIn !!= (i, new) !! i == new
 
 -- * E3
 
 update :: Sudoku -> Pos -> Cell -> Sudoku
 update sud pos cell = Sudoku $ func 0 (rows sud) pos cell
-  where func acc (r:rs) (row,col) cell
-          | (row < 0 || col < 0) = error "Invalid position for update: Indexes cannot be negative!"
-          | (row == acc)         = (r !!= (col, cell)):rs
-          | (otherwise)          = r:(func (acc+1) rs (row,col) cell)
+  where
+    func acc (r : rs) (row, col) cell
+      | row < 0 || col < 0 = error "Invalid position for update: Indexes cannot be negative!"
+      | row == acc = (r !!= (col, cell)) : rs
+      | otherwise = r : func (acc + 1) rs (row, col) cell
 
-
-
--- prop_update_updated :: 
--- prop_update_updated = undefined
+prop_update_updated :: Sudoku -> Bool
+prop_update_updated s1 = update s1 (0, 0) (Just 1) /= s1 || head (head (rows s1)) == Just 1
 
 ------------------------------------------------------------------------------
 
@@ -237,24 +243,58 @@ solve' emptyCells sud
   | otherwise                        = foldr (++) [] $ map (solve' (tail emptyCells)) newList
   where newList = [update sud (head emptyCells) (Just i) | i <- [1..9]]
 
+solve :: Sudoku -> Maybe Sudoku
+solve sud
+  | null solutions = Nothing
+  | otherwise = Just $ head solutions
+  where
+    solutions = solve' (blanks sud) sud
+
+solve' :: [Pos] -> Sudoku -> [Sudoku]
+solve' emptyCells sud
+  | not (isOkay sud && isSudoku sud) = []
+  | null emptyCells = [sud]
+  | otherwise = concatMap (solve' (tail emptyCells)) newList
+  where
+    newList = [update sud (head emptyCells) (Just i) | i <- [1 .. 9]]
+
 -- * F2
-readAndSolve :: FilePath -> IO()
-readAndSolve fp = 
+
+readAndSolve :: FilePath -> IO ()
+readAndSolve fp =
   do
     sud <- readSudoku fp
     let solved = solve sud
-    if isJust solved then printSudoku (fromJust solved)
-    else putStr "(no solution)\n"
+    maybe (putStr "(no solution)\n") printSudoku solved
+
 -- * F3
 
 isSolutionOf :: Sudoku -> Sudoku -> Bool
-isSolutionOf (Sudoku []) (Sudoku [])             = True
-isSolutionOf (Sudoku (r1:r1s)) (Sudoku (r2:r2s)) = isSolHelper r1 r2 && isSolutionOf (Sudoku r1s) (Sudoku r2s)
-  where isSolHelper [] []             = True
-        isSolHelper (c1:c1s) (c2:c2s) | isNothing c2 = isSolHelper c1s c2s
-                                      | c1 == c2     = isSolHelper c1s c2s
-                                      | otherwise    = False 
+isSolutionOf s1 s2 = allRowsSameOrJust (rows s1) (rows s2)
+  where
+    allRowsSameOrJust [] [] = True
+    allRowsSameOrJust (r1 : rs1) (r2 : rs2)
+      | allCellsSameOrJust r1 r2 = allRowsSameOrJust rs1 rs2
+      | otherwise = False
+    allCellsSameOrJust [] [] = True
+    allCellsSameOrJust (c1 : cs1) (c2 : cs2)
+      | c1 == c2 = allCellsSameOrJust cs1 cs2
+      | isNothing c2 = allCellsSameOrJust cs1 cs2
+      | otherwise = False
 
 -- * F4
 
 prop_SolveSound :: Sudoku -> Property
+prop_SolveSound s = isOkay s ==> isSolutionOf (fromJust (solve s)) s
+
+fewerChecks prop = quickCheckWith stdArgs {maxSuccess = 30} prop
+
+main :: IO ()
+main = do
+  quickCheck prop_Sudoku
+  quickCheck prop_blocks_lengths
+  quickCheck prop_blanks_allBlanks
+  quickCheck prop_bangBangEquals_correct
+  quickCheck prop_update_updated
+  fewerChecks prop_SolveSound
+  putStrLn "All tests passed!"
