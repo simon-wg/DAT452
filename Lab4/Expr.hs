@@ -1,6 +1,7 @@
 module Expr where
 
-import Parsing 
+import Parsing
+import Data.Maybe
 
 data Expr
   = Num Double
@@ -65,7 +66,10 @@ eval (Cos e) x = Prelude.cos (eval e x)
 
 -- | Part D
 numParser :: Parser Expr
-numParser = Num <$> readsP
+numParser = do n <- readsP
+               zeroOrMore (char ' ')
+               return $ Num n
+  -- | Num <$> readsP
 
 expr, term, factor, sinExpr, cosExpr :: Parser Expr
 
@@ -98,3 +102,10 @@ factor = numParser
           <|> (do char 'x'; return X)
           <|> sinExpr
           <|> cosExpr
+
+readExpr :: String -> Maybe Expr
+readExpr s = Just e
+    where Just (e, l) = parse expr s
+
+prop_ShowReadExpr :: Expr -> Bool
+prop_ShowReadExpr e = (eval (fromJust $ readExpr $ showExpr e) 0) == eval e 0
