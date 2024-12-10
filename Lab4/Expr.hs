@@ -1,6 +1,6 @@
 module Expr where
 
-import Parsing (Parser, parse)
+import Parsing 
 
 data Expr
   = Num Double
@@ -47,7 +47,11 @@ showExpr (Mul e1 e2) = showFactor e1 ++ " * " ++ showFactor e2
   where
     showFactor (Add e1 e2) = "(" ++ showExpr (Add e1 e2) ++ ")"
     showFactor e = showExpr e
+showExpr (Sin X) = "sin x"
+showExpr (Sin (Num i)) = "sin " ++ show i
 showExpr (Sin e) = "sin(" ++ showExpr e ++ ")"
+showExpr (Cos X) = "cos x"
+showExpr (Cos (Num i)) = "cos " ++ show i
 showExpr (Cos e) = "cos(" ++ showExpr e ++ ")"
 
 -- | Part C
@@ -60,7 +64,37 @@ eval (Sin e) x = Prelude.sin (eval e x)
 eval (Cos e) x = Prelude.cos (eval e x)
 
 -- | Part D
-exprParser
+numParser :: Parser Expr
+numParser = Num <$> readsP
 
-readExpr :: String -> Maybe Expr
-readExpr = parse
+expr, term, factor, sinExpr, cosExpr :: Parser Expr
+
+expr = do 
+        t <- term
+        ts <- zeroOrMore (do char '+'; term)
+        return $ foldl Add t ts
+
+term = do
+        f <- factor
+        fs <- zeroOrMore (do char '*'; factor)
+        return $ foldl Mul f fs
+
+sinExpr = do 
+        char 's'
+        char 'i'
+        char 'n'
+        e <- (do char ' '; e <- factor; return e) <|> factor
+        return $ Sin e
+
+cosExpr = do 
+        char 'c'
+        char 'o'
+        char 's'
+        e <- (do char ' '; e <- factor; return e) <|> factor
+        return $ Cos e
+
+factor = numParser 
+          <|> (do char '('; e <- expr; char ')'; return e) 
+          <|> (do char 'x'; return X)
+          <|> sinExpr
+          <|> cosExpr
