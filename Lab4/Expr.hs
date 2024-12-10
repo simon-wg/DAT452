@@ -2,6 +2,7 @@ module Expr where
 
 import Parsing
 import Data.Maybe
+import Test.QuickCheck
 
 data Expr
   = Num Double
@@ -109,3 +110,14 @@ readExpr s = Just e
 
 prop_ShowReadExpr :: Expr -> Bool
 prop_ShowReadExpr e = (eval (fromJust $ readExpr $ showExpr e) 0) == eval e 0
+
+rNum :: Gen Expr
+rNum = do 
+        n <- choose(1.0, 9.0)
+        return $ Num n
+
+arbExpr :: Int -> Gen Expr
+arbExpr = undefined
+
+instance Arbitrary Expr where
+        arbitrary = undefined
