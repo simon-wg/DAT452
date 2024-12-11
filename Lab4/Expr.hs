@@ -172,7 +172,19 @@ prop_simplify e = eval e 1 == eval (simplify e) 1
 differentiate :: Expr -> Expr
 differentiate (Num _) = Num 0
 differentiate X = Num 1
-differentiate (Add e1 e2) = simplify $ Add (differentiate e1) (differentiate e2)
-differentiate (Mul e1 e2) = simplify $ Add (simplify $ Mul e1 (differentiate e2)) (simplify $ Mul e2 (differentiate e1))
-differentiate (Sin e) = simplify $ Mul (Cos e) (differentiate e)
-differentiate (Cos e) = simplify $ Mul (Mul (Num (-1)) (Sin e)) (differentiate e)
+differentiate (Add e1 e2) =
+  simplify $
+    Add (differentiate e1) (differentiate e2)
+differentiate (Mul e1 e2) =
+  simplify $
+    Add
+      ( simplify $
+          Mul e1 (differentiate e2)
+      )
+      ( simplify $
+          Mul e2 (differentiate e1)
+      )
+differentiate (Sin e) =
+  simplify $ Mul (Cos e) (differentiate e)
+differentiate (Cos e) =
+  simplify $ Mul (Mul (Num (-1)) (Sin e)) (differentiate e)
