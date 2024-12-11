@@ -124,6 +124,18 @@ cell = do
   n <- elements [1 .. 9]
   frequency [(1, return $ Just n), (9, return Nothing)]
 
+newtype SudokuPos = SudokuPos (Int, Int)
+  deriving Show
+
+instance Arbitrary SudokuPos where
+  arbitrary = pos
+
+pos :: Gen SudokuPos
+pos = do
+  r <- choose(0,8)
+  c <- choose(0,8)
+  return $ SudokuPos (r, c)
+
 -- * C2
 
 -- | an instance for generating Arbitrary Sudokus
@@ -261,10 +273,13 @@ update sud pos cell = Sudoku $ func 0 (rows sud) pos cell
       | otherwise = r : func (acc + 1) rs (row, col) cell
     func _ [] _ _ = error "Invalid position for update: Indexes out of bounds!"
 
+-- | Alternatively: sud !!= (row, (sud !! row) !!= (col, a))
+
 -- | Assures that a sudoku when updated with a new cell will either be changed
 -- | or that it has been updated with the same cell it had
-prop_update_updated :: Sudoku -> Bool
-prop_update_updated s1 = update s1 (0, 0) (Just 1) /= s1 || head (head (rows s1)) == Just 1
+prop_update_updated :: Sudoku -> SudokuPos -> Cell -> Bool
+prop_update_updated s1 (SudokuPos (row, col)) cell = (rows s2) !!  row !! col == cell
+  where s2 = update s1 (row, col) cell
 
 ------------------------------------------------------------------------------
 
