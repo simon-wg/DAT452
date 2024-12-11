@@ -1,7 +1,5 @@
 module Expr where
 
-import Data.Fixed (mod')
-import Data.Maybe
 import Parsing
 import Test.QuickCheck
 
@@ -95,12 +93,12 @@ expr, term, factor, sinExpr, cosExpr :: Parser Expr
 expr = do
   t <- term
   ts <- zeroOrMore (do char '+'; term)
-  return $ foldl Add t ts
+  return $ foldr Add t ts
 
 term = do
   f <- factor
   fs <- zeroOrMore (do char '*'; factor)
-  return $ foldl Mul f fs
+  return $ foldr Mul f fs
 
 sinExpr = do
   char 's'
@@ -134,7 +132,7 @@ trees the less precise the rounding was. To us this indicates that the problem
 lies in floating point imprecision.
 -}
 prop_ShowReadExpr :: Expr -> Bool
-prop_ShowReadExpr e = round (eval e 1) == round (eval e' 1)
+prop_ShowReadExpr e = round (1e10 * eval e 1) == round (1e10 * eval e' 1)
   where
     Just e' = readExpr (showExpr e)
 
@@ -151,8 +149,8 @@ arbExpr depth = do
   case n of
     0 -> rNum
     _ -> do
-      e1 <- arbExpr (depth - 1)
-      e2 <- arbExpr (depth - 1)
+      e1 <- arbExpr (depth `div` 2)
+      e2 <- arbExpr (depth `div` 2)
       oneof
         [ rNum,
           return e1,
@@ -170,23 +168,20 @@ instance Arbitrary Expr where
 -- | We use pattern matching for every case we could think of to simplify
 -- | the expression.
 simplify :: Expr -> Expr
-simplify (Add X X) = Mul (Num 2) X
 simplify (Add (Num n1) (Num n2)) = Num (n1 + n2)
 simplify (Add (Num 0) e) = simplify e
 simplify (Add e (Num 0)) = simplify e
-simplify (Mul X (Mul (Num n1) X)) = simplify $ Mul (Num n1) (Mul X X)
-simplify (Mul (Mul (Num n1) X) X) = simplify $ Mul (Num n1) (Mul X X)
-simplify (Mul (Mul X X) (Num n1)) = simplify $ Mul (Num n1) (Mul X X)
+simplify (Add e1 e2) = simplify $ Add (simplify e1) (simplify e2)
 simplify (Mul (Num n1) (Num n2)) = Num (n1 * n2)
 simplify (Mul (Num 0) _) = Num 0
 simplify (Mul _ (Num 0)) = Num 0
 simplify (Mul (Num 1) e) = simplify e
 simplify (Mul e (Num 1)) = simplify e
-simplify (Mul e1 e2) = Mul (simplify e1) (simplify e2)
+simplify (Mul e1 e2) = simplify $ Mul (simplify e1) (simplify e2)
 simplify (Sin (Num n)) = Num (Prelude.sin n)
-simplify (Sin e) = Sin (simplify e)
+simplify (Sin e) = simplify $ Sin (simplify e)
 simplify (Cos (Num n)) = Num (Prelude.cos n)
-simplify (Cos e) = Cos (simplify e)
+simplify (Cos e) = simplify $ Cos (simplify e)
 simplify e = e
 
 prop_simplify :: Expr -> Bool
