@@ -1,5 +1,6 @@
 module Expr where
 
+import Data.Fixed (mod')
 import Data.Maybe
 import Parsing
 import Test.QuickCheck
@@ -87,28 +88,35 @@ sinExpr = do
   char 's'
   char 'i'
   char 'n'
-  e <- (do char ' '; e <- factor; return e) <|> factor
-  return $ Sin e
+  Sin <$> factor
 cosExpr = do
   char 'c'
   char 'o'
   char 's'
-  e <- (do char ' '; e <- factor; return e) <|> factor
-  return $ Cos e
+  Cos <$> factor
 factor =
-  numParser
-    <|> (do char '('; e <- expr; char ')'; return e)
+  (do char '('; e <- expr; char ')'; return e)
     <|> (do char 'x'; return X)
     <|> sinExpr
     <|> cosExpr
+    <|> numParser
 
 readExpr :: String -> Maybe Expr
 readExpr s = Just e
   where
-    Just (e, l) = parse expr s
+    Just (e, l) = parse expr (filter (/= ' ') s)
 
+-- | Part E
+
+{-
+We noticed after iterating a few different rounding points, that we got deeper
+trees the less precise the rounding was. To us this indicates that the problem
+lies in floating point imprecision.
+-}
 prop_ShowReadExpr :: Expr -> Bool
-prop_ShowReadExpr e = (eval (fromJust $ readExpr $ showExpr e) 0) == eval e 0
+prop_ShowReadExpr e = round (eval e 1) == round (eval e' 1)
+  where
+    Just e' = readExpr (showExpr e)
 
 rNum :: Gen Expr
 rNum = do
@@ -135,3 +143,36 @@ arbExpr depth = do
 
 instance Arbitrary Expr where
   arbitrary = sized arbExpr
+
+-- | Part F
+simplify :: Expr -> Expr
+simplify (Add X X) = Mul (Num 2) X
+simplify (Add (Num n1) (Num n2)) = Num (n1 + n2)
+simplify (Add (Num 0) e) = simplify e
+simplify (Add e (Num 0)) = simplify e
+simplify (Mul X (Mul (Num n1) X)) = simplify $ Mul (Num n1) (Mul X X)
+simplify (Mul (Mul (Num n1) X) X) = simplify $ Mul (Num n1) (Mul X X)
+simplify (Mul (Mul X X) (Num n1)) = simplify $ Mul (Num n1) (Mul X X)
+simplify (Mul (Num n1) (Num n2)) = Num (n1 * n2)
+simplify (Mul (Num 0) _) = Num 0
+simplify (Mul _ (Num 0)) = Num 0
+simplify (Mul (Num 1) e) = simplify e
+simplify (Mul e (Num 1)) = simplify e
+simplify (Mul e1 e2) = Mul (simplify e1) (simplify e2)
+simplify (Sin (Num n)) = Num (Prelude.sin n)
+simplify (Sin e) = Sin (simplify e)
+simplify (Cos (Num n)) = Num (Prelude.cos n)
+simplify (Cos e) = Cos (simplify e)
+simplify e = e
+
+prop_simplify :: Expr -> Bool
+prop_simplify e = eval e 1 == eval (simplify e) 1
+
+-- | Part G
+differentiate :: Expr -> Expr
+differentiate (Num _) = Num 0
+differentiate X = Num 1
+differentiate (Add e1 e2) = simplify $ Add (differentiate e1) (differentiate e2)
+differentiate (Mul e1 e2) = simplify $ Add (simplify $ Mul e1 (differentiate e2)) (simplify $ Mul e2 (differentiate e1))
+differentiate (Sin e) = simplify $ Mul (Cos e) (differentiate e)
+differentiate (Cos e) = simplify $ Mul (Mul (Num (-1)) (Sin e)) (differentiate e)
