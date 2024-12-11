@@ -171,13 +171,13 @@ simplify :: Expr -> Expr
 simplify (Add (Num n1) (Num n2)) = Num (n1 + n2)
 simplify (Add (Num 0) e) = simplify e
 simplify (Add e (Num 0)) = simplify e
-simplify (Add e1 e2) = Add (simplify e1) (simplify e2)
+simplify (Add e1 e2) = simplify $ Add (simplify e1) (simplify e2)
 simplify (Mul (Num n1) (Num n2)) = Num (n1 * n2)
 simplify (Mul (Num 0) _) = Num 0
 simplify (Mul _ (Num 0)) = Num 0
 simplify (Mul (Num 1) e) = simplify e
 simplify (Mul e (Num 1)) = simplify e
-simplify (Mul e1 e2) = Mul (simplify e1) (simplify e2)
+simplify (Mul e1 e2) = simplify $ Mul (simplify e1) (simplify e2)
 simplify (Sin (Num n)) = Num (Prelude.sin n)
 simplify (Sin X) = Sin X
 simplify (Sin (Add e1 e2)) = Sin (simplify $ Add e1 e2)
@@ -200,17 +200,13 @@ differentiate :: Expr -> Expr
 differentiate (Num _) = Num 0
 differentiate X = Num 1
 differentiate (Add e1 e2) =
-  simplify $
-    Add (differentiate e1) (differentiate e2)
+  Add (differentiate e1) (differentiate e2)
 differentiate (Mul e1 e2) =
-  simplify $
-    Add
-      ( simplify $
-          Mul e1 (differentiate e2)
-      )
-      ( simplify $
-          Mul e2 (differentiate e1)
-      )
+  Add
+    ( Mul e1 (differentiate e2)
+    )
+    ( Mul e2 (differentiate e1)
+    )
 differentiate (Sin e) =
   simplify $ Mul (Cos e) (differentiate e)
 differentiate (Cos e) =
