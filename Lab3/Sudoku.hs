@@ -125,15 +125,15 @@ cell = do
   frequency [(1, return $ Just n), (9, return Nothing)]
 
 newtype SudokuPos = SudokuPos (Int, Int)
-  deriving Show
+  deriving (Show)
 
 instance Arbitrary SudokuPos where
   arbitrary = pos
 
 pos :: Gen SudokuPos
 pos = do
-  r <- choose(0,8)
-  c <- choose(0,8)
+  r <- choose (0, 8)
+  c <- choose (0, 8)
   return $ SudokuPos (r, c)
 
 -- * C2
@@ -278,8 +278,9 @@ update sud pos cell = Sudoku $ func 0 (rows sud) pos cell
 -- | Assures that a sudoku when updated with a new cell will either be changed
 -- | or that it has been updated with the same cell it had
 prop_update_updated :: Sudoku -> SudokuPos -> Cell -> Bool
-prop_update_updated s1 (SudokuPos (row, col)) cell = (rows s2) !!  row !! col == cell
-  where s2 = update s1 (row, col) cell
+prop_update_updated s1 (SudokuPos (row, col)) cell = (rows s2) !! row !! col == cell
+  where
+    s2 = update s1 (row, col) cell
 
 ------------------------------------------------------------------------------
 
@@ -322,7 +323,7 @@ readAndSolve fp =
 -- | by checking that every element in every row matches, disregarding cells where
 -- | the solved sudoku has a number and the other sudoku has nothing
 isSolutionOf :: Sudoku -> Sudoku -> Bool
-isSolutionOf s1 s2 = null (blanks s1) && allRowsSameOrJust (rows s1) (rows s2)
+isSolutionOf s1 s2 = isOkay s1 && null (blanks s1) && allRowsSameOrJust (rows s1) (rows s2)
   where
     allRowsSameOrJust [] [] = True
     allRowsSameOrJust (r1 : rs1) (r2 : rs2)
