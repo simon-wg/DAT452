@@ -1,7 +1,7 @@
 module Expr where
 
-import Parsing
 import Data.Maybe
+import Parsing
 import Test.QuickCheck
 
 data Expr
@@ -67,57 +67,71 @@ eval (Cos e) x = Prelude.cos (eval e x)
 
 -- | Part D
 numParser :: Parser Expr
-numParser = do n <- readsP
-               zeroOrMore (char ' ')
-               return $ Num n
-  -- | Num <$> readsP
+numParser = do
+  n <- readsP
+  zeroOrMore (char ' ')
+  return $ Num n
+
+-- \| Num <$> readsP
 
 expr, term, factor, sinExpr, cosExpr :: Parser Expr
-
-expr = do 
-        t <- term
-        ts <- zeroOrMore (do char '+'; term)
-        return $ foldl Add t ts
-
+expr = do
+  t <- term
+  ts <- zeroOrMore (do char '+'; term)
+  return $ foldl Add t ts
 term = do
-        f <- factor
-        fs <- zeroOrMore (do char '*'; factor)
-        return $ foldl Mul f fs
-
-sinExpr = do 
-        char 's'
-        char 'i'
-        char 'n'
-        e <- (do char ' '; e <- factor; return e) <|> factor
-        return $ Sin e
-
-cosExpr = do 
-        char 'c'
-        char 'o'
-        char 's'
-        e <- (do char ' '; e <- factor; return e) <|> factor
-        return $ Cos e
-
-factor = numParser 
-          <|> (do char '('; e <- expr; char ')'; return e) 
-          <|> (do char 'x'; return X)
-          <|> sinExpr
-          <|> cosExpr
+  f <- factor
+  fs <- zeroOrMore (do char '*'; factor)
+  return $ foldl Mul f fs
+sinExpr = do
+  char 's'
+  char 'i'
+  char 'n'
+  e <- (do char ' '; e <- factor; return e) <|> factor
+  return $ Sin e
+cosExpr = do
+  char 'c'
+  char 'o'
+  char 's'
+  e <- (do char ' '; e <- factor; return e) <|> factor
+  return $ Cos e
+factor =
+  numParser
+    <|> (do char '('; e <- expr; char ')'; return e)
+    <|> (do char 'x'; return X)
+    <|> sinExpr
+    <|> cosExpr
 
 readExpr :: String -> Maybe Expr
 readExpr s = Just e
-    where Just (e, l) = parse expr s
+  where
+    Just (e, l) = parse expr s
 
 prop_ShowReadExpr :: Expr -> Bool
 prop_ShowReadExpr e = (eval (fromJust $ readExpr $ showExpr e) 0) == eval e 0
 
 rNum :: Gen Expr
-rNum = do 
-        n <- choose(1.0, 9.0)
-        return $ Num n
+rNum = do
+  n <- choose (0.0, 9.0)
+  return $ Num n
 
 arbExpr :: Int -> Gen Expr
-arbExpr = undefined
+arbExpr depth = do
+  n <- choose (0, depth)
+  case n of
+    0 -> rNum
+    _ -> do
+      e1 <- arbExpr (depth - 1)
+      e2 <- arbExpr (depth - 1)
+      oneof
+        [ rNum,
+          return e1,
+          return e2,
+          return $ Add e1 e2,
+          return $ Mul e1 e2,
+          return $ Sin e1,
+          return $ Cos e1
+        ]
 
 instance Arbitrary Expr where
-        arbitrary = undefined
+  arbitrary = sized arbExpr
