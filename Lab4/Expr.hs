@@ -171,16 +171,22 @@ simplify :: Expr -> Expr
 simplify (Add (Num n1) (Num n2)) = Num (n1 + n2)
 simplify (Add (Num 0) e) = simplify e
 simplify (Add e (Num 0)) = simplify e
-simplify (Add e1 e2) = simplify $ Add (simplify e1) (simplify e2)
+simplify (Add e1 e2) = Add (simplify e1) (simplify e2)
 simplify (Mul (Num n1) (Num n2)) = Num (n1 * n2)
 simplify (Mul (Num 0) _) = Num 0
 simplify (Mul _ (Num 0)) = Num 0
 simplify (Mul (Num 1) e) = simplify e
 simplify (Mul e (Num 1)) = simplify e
-simplify (Mul e1 e2) = simplify $ Mul (simplify e1) (simplify e2)
+simplify (Mul e1 e2) = Mul (simplify e1) (simplify e2)
 simplify (Sin (Num n)) = Num (Prelude.sin n)
+simplify (Sin X) = Sin X
+simplify (Sin (Add e1 e2)) = Sin (simplify $ Add e1 e2)
+simplify (Sin (Mul e1 e2)) = Sin (simplify $ Mul e1 e2)
 simplify (Sin e) = simplify $ Sin (simplify e)
 simplify (Cos (Num n)) = Num (Prelude.cos n)
+simplify (Cos X) = Cos X
+simplify (Cos (Add e1 e2)) = Cos (simplify $ Add e1 e2)
+simplify (Cos (Mul e1 e2)) = Cos (simplify $ Mul e1 e2)
 simplify (Cos e) = simplify $ Cos (simplify e)
 simplify e = e
 
