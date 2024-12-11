@@ -33,6 +33,8 @@ sin = Sin
 cos :: Expr -> Expr
 cos = Cos
 
+-- | Simple recursive function to calculate the amount of nodes in an
+-- | expression tree.
 size :: Expr -> Int
 size (Num _) = 0
 size X = 0
@@ -42,6 +44,8 @@ size (Sin e) = 1 + size e
 size (Cos e) = 1 + size e
 
 -- | Part B
+-- | Here we thought about every possible situation we could come up with
+-- | and used pattern matching to print all the different cases.
 showExpr :: Expr -> String
 showExpr (Num x) = show x
 showExpr X = "x"
@@ -58,6 +62,7 @@ showExpr (Cos (Num i)) = "cos " ++ show i
 showExpr (Cos e) = "cos(" ++ showExpr e ++ ")"
 
 -- | Part C
+-- | Here we used pattern matching to evaluate the expression tree.
 eval :: Expr -> Double -> Double
 eval X x = x
 eval (Num n) _ = n
@@ -67,6 +72,8 @@ eval (Sin e) x = Prelude.sin (eval e x)
 eval (Cos e) x = Prelude.cos (eval e x)
 
 -- | Part D
+-- | We use the parser from the Parsing library to parse the expression.
+-- | Before any parsing occurrs we strip all whitespace from the input string.
 numParser :: Parser Expr
 numParser = do
   n <- readsP
@@ -76,24 +83,37 @@ numParser = do
 -- \| Num <$> readsP
 
 expr, term, factor, sinExpr, cosExpr :: Parser Expr
+
+-- | In order we check
+-- | 1. If the expression is a term
+-- | 2. If it is a term followed by a '+' and another term
+-- | 3. If it is a term followed by a '*' and another term
+-- | 4. If it is a sin expression
+-- | 5. If it is a cos expression
+-- | 6. If it is a number
+-- | These are in order of precedence.
 expr = do
   t <- term
   ts <- zeroOrMore (do char '+'; term)
   return $ foldl Add t ts
+
 term = do
   f <- factor
   fs <- zeroOrMore (do char '*'; factor)
   return $ foldl Mul f fs
+
 sinExpr = do
   char 's'
   char 'i'
   char 'n'
   Sin <$> factor
+
 cosExpr = do
   char 'c'
   char 'o'
   char 's'
   Cos <$> factor
+
 factor =
   (do char '('; e <- expr; char ')'; return e)
     <|> (do char 'x'; return X)
@@ -123,6 +143,8 @@ rNum = do
   n <- choose (0.0, 9.0)
   return $ Num n
 
+-- | Our arbitrary expression has a depth which prevents it from
+-- | becoming too large.
 arbExpr :: Int -> Gen Expr
 arbExpr depth = do
   n <- choose (0, depth)
@@ -145,6 +167,8 @@ instance Arbitrary Expr where
   arbitrary = sized arbExpr
 
 -- | Part F
+-- | We use pattern matching for every case we could think of to simplify
+-- | the expression.
 simplify :: Expr -> Expr
 simplify (Add X X) = Mul (Num 2) X
 simplify (Add (Num n1) (Num n2)) = Num (n1 + n2)
@@ -169,6 +193,8 @@ prop_simplify :: Expr -> Bool
 prop_simplify e = eval e 1 == eval (simplify e) 1
 
 -- | Part G
+-- | We use pattern matching to differentiate the expression.
+-- | We also simplify the expression after differentiating it.
 differentiate :: Expr -> Expr
 differentiate (Num _) = Num 0
 differentiate X = Num 1
