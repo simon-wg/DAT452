@@ -1,10 +1,11 @@
 module Expr where
-  
-import Parsing
+
 import Data.Maybe
+import Parsing
 import Test.QuickCheck
 
 -- Part A ##################
+
 -- | Class describing mathematical expressions
 -- | A thing of type expression is either:
 -- | A number of type double
@@ -21,14 +22,14 @@ data Op = Add | Mul
 
 -- | Class describing Functions
 -- | Currently contains Sin and Cos
-data Fn = Sin | Cos 
+data Fn = Sin | Cos
   deriving (Eq, Show)
 
 x :: Expr
 x = X
 
 num :: Double -> Expr
-num d = Num d
+num = Num
 
 add,mul :: Expr -> Expr -> Expr
 add = Optr Add
@@ -38,10 +39,10 @@ sin,cos :: Expr -> Expr
 sin = Func Sin
 cos = Func Cos
 
--- | Function counting the sum of the number of operations 
+-- | Function counting the sum of the number of operations
 -- | and functions in an expression. Result is an int.
 size :: Expr -> Int
-size X       = 0
+size X = 0
 size (Num _) = 0
 size (Optr op e1 e2) = 1 + size e1 + size e2
 size (Func fn e) = 1 + size e
@@ -87,14 +88,14 @@ getFn Cos = Prelude.cos
 -- | Takes an expression and a value for X and evaluates the expression
 -- | using the value for X when applicable.
 eval :: Expr -> Double -> Double
-eval X x          = x
-eval (Num n) _    = n
+eval X x = x
+eval (Num n) _ = n
 eval (Optr op e1 e2) x = (getOp op) (eval e1 x) (eval e2 x)
 eval (Func fn e) x = (getFn fn) (eval e x)
 
 -- Part D #####################################3
 
--- | Function that when given two expressions combines them 
+-- | Function that when given two expressions combines them
 -- | into an add operation
 foldAdd :: Expr -> Expr -> Expr
 foldAdd e1 e2 = Optr Add e1 e2
@@ -112,6 +113,7 @@ numParser = do
   return $ Num n
 
 expr, term, factor, sinExpr, cosExpr :: Parser Expr
+
 -- | In order we check
 -- | 1. If the expression is a term
 -- | 2. If it is a term followed by a '+' and another term
@@ -134,27 +136,26 @@ sinExpr = do
   char 's'
   char 'i'
   char 'n'
-  f <- factor
-  return $ Func Sin f
+  Func Sin <$> factor
 
 cosExpr = do
   char 'c'
   char 'o'
   char 's'
-  f <- factor
-  return $ Func Cos f
+  Func Cos <$> factor
 
-factor = 
+factor =
   (do char '('; e <- expr; char ')'; return e)
-  <|> (do char 'x'; return X)
-  <|> sinExpr
-  <|> cosExpr
-  <|> numParser
+    <|> (do char 'x'; return X)
+    <|> sinExpr
+    <|> cosExpr
+    <|> numParser
 
 -- | Reads a string looking for an exeption, returns Nothing if none is found
 readExpr :: String -> Maybe Expr
 readExpr s = Just e
-  where Just (e, l) = parse expr (filter (/= ' ') s)
+  where
+    Just (e, l) = parse expr (filter (/= ' ') s)
 
 -- Part E #####################################
 
@@ -162,14 +163,14 @@ readExpr s = Just e
 -- | Example: (1+2)+3 is considered equal to 1+(2+3)
 assoc :: Expr -> Expr
 assoc (Optr Add (Optr Add e1 e2) e3) = assoc (Optr Add e1 (Optr Add e2 e3))
-assoc (Optr Add e1           e2)     = Optr Add (assoc e1) (assoc e2)
+assoc (Optr Add e1 e2) = Optr Add (assoc e1) (assoc e2)
 assoc (Optr Mul (Optr Mul e1 e2) e3) = assoc (Optr Mul e1 (Optr Mul e2 e3))
-assoc (Optr Mul e1           e2)     = Optr Mul (assoc e1) (assoc e2)
-assoc (Func Sin e)                   = Func Sin (assoc e)
-assoc (Func Cos e)                   = Func Cos (assoc e)
-assoc e                              = e
+assoc (Optr Mul e1 e2) = Optr Mul (assoc e1) (assoc e2)
+assoc (Func Sin e) = Func Sin (assoc e)
+assoc (Func Cos e) = Func Cos (assoc e)
+assoc e = e
 
--- | Prop ensuring that an expression is the same 
+-- | Prop ensuring that an expression is the same
 -- | before and after show and read
 prop_ShowReadExpr :: Expr -> Bool
 prop_ShowReadExpr e = assoc e == assoc (fromJust $ readExpr $ showExpr e)
@@ -177,15 +178,15 @@ prop_ShowReadExpr e = assoc e == assoc (fromJust $ readExpr $ showExpr e)
 -- | Generator for a random double in the range 0 to 9
 rNum :: Gen Expr
 rNum = do
-  n <- choose(0.0,9.0)
+  n <- choose (0.0, 9.0)
   return $ Num n
 
 -- | Generator for expressions that gets smaller the deeper you go into the expression
 -- | ensuring that the expression does not continue forever
 arbExpr :: Int -> Gen Expr
 arbExpr depth = do
-  n <- choose(0,depth)
-  case n of 
+  n <- choose (0, depth)
+  case n of
     0 -> rNum
     _ -> do
       e1 <- arbExpr (depth `div` 2)
@@ -207,24 +208,27 @@ instance Arbitrary Expr where
 
 -- | Function that simplifies an expression by pattern matching
 simplify :: Expr -> Expr
-simplify (Optr op (Num n) (Num m)) = Num ((getOp op) n m)
-simplify (Optr Add (Num 0) e)      = simplify e
-simplify (Optr Add e (Num 0))      = simplify e
-simplify (Optr op X e)             = Optr op X (simplify e)
-simplify (Optr op e X)             = Optr op (simplify e) X
+simplify (Optr op (Num n) (Num m)) = Num (getOp op n m)
+simplify (Optr Add (Num 0) e) = simplify e
+simplify (Optr Add e (Num 0)) = simplify e
+simplify (Optr op X e) = Optr op X (simplify e)
+simplify (Optr op e X) = Optr op (simplify e) X
 simplify (Optr op (Func fn e1) e2) = Optr op (simplify $ Func fn $ simplify e1) (simplify e2)
 simplify (Optr op e1 (Func fn e2)) = Optr op (simplify e1) (simplify $ Func fn $ simplify e2)
-simplify (Optr op e1 e2)           = simplify $ Optr op (simplify e1) (simplify e2)
-simplify (Func fn (Num n))         = Num ((getFn fn) n)
-simplify (Func fn X)               = Func fn X
+simplify (Optr op e1 e2) = simplify $ Optr op (simplify e1) (simplify e2)
+simplify (Func fn (Num n)) = Num (getFn fn n)
+simplify (Func fn X) = Func fn X
 simplify (Func fn (Optr op e1 e2)) = Func fn (simplify $ Optr op e1 e2)
-simplify (Func fn e)               = simplify $ Func fn (simplify e)
-simplify e                         = e
+simplify (Func fn e) = simplify $ Func fn (simplify e)
+simplify e = e
 
 -- | Prop assuring that the value for an expression is the same
 -- | before and after simplifying
 prop_simplify :: Expr -> Bool
 prop_simplify e = eval e 1 == eval (simplify e) 1
+
+prop_multiple_simplify :: Expr -> Bool
+prop_multiple_simplify e = simplify (simplify e) == simplify e
 
 -- Part G ###############################################
 
@@ -232,12 +236,14 @@ prop_simplify e = eval e 1 == eval (simplify e) 1
 differentiate :: Expr -> Expr
 differentiate (Num _) = Num 0
 differentiate X = Num 1
-differentiate (Optr Add e1 e2) = 
-  Optr Add 
-    (differentiate e1) 
+differentiate (Optr Add e1 e2) =
+  Optr
+    Add
+    (differentiate e1)
     (differentiate e2)
-differentiate (Optr Mul e1 e2) = 
-  Optr Add 
+differentiate (Optr Mul e1 e2) =
+  Optr
+    Add
     (Optr Mul e1 (differentiate e2))
     (Optr Mul (differentiate e1) e2)
 differentiate (Func Sin e) = simplify $ 
