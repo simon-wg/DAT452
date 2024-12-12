@@ -31,22 +31,20 @@ num :: Double -> Expr
 num d = Num d
 
 add,mul :: Expr -> Expr -> Expr
-add e1 e2 = Optr Add e1 e2
-mul e1 e2 = Optr Mul e1 e2
+add = Optr Add
+mul = Optr Mul
 
 sin,cos :: Expr -> Expr
-sin e = Func Sin e
-cos e = Func Cos e
+sin = Func Sin
+cos = Func Cos
 
 -- | Function counting the sum of the number of operations 
 -- | and functions in an expression. Result is an int.
 size :: Expr -> Int
 size X       = 0
 size (Num _) = 0
-size (Optr Add e1 e2) = 1 + size e1 + size e2
-size (Optr Mul e1 e2) = 1 + size e1 + size e2
-size (Func Sin e) = 1 + size e
-size (Func Cos e) = 1 + size e
+size (Optr op e1 e2) = 1 + size e1 + size e2
+size (Func fn e) = 1 + size e
 
 -- Part B ##################
 
@@ -248,7 +246,7 @@ differentiate (Func Sin e) = simplify $
     (differentiate e)
 differentiate (Func Cos e) = simplify $ 
   Optr Mul 
-    (Num (-0.1)) 
+    (Num (-1)) 
     (Optr Mul 
       (Func Sin e) 
       (differentiate e)) 
