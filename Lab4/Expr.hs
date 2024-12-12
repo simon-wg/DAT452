@@ -213,23 +213,11 @@ simplify (Optr Add (Num 0) e) = simplify e
 simplify (Optr Add e (Num 0)) = simplify e
 simplify (Optr op X e) = Optr op X (simplify e)
 simplify (Optr op e X) = Optr op (simplify e) X
-simplify (Optr op (Func fn e1) e2)
-             |simplifyOp (Optr op (Func fn e1) e2) == (Optr op (Func fn e1) e2) = 
-              Optr op (simplify $ Func fn (simplify e1)) (simplify e2)
-             | otherwise = simplify $ Optr op (simplify $ Func fn (simplify e1)) (simplify e2)
-simplify (Optr op e1 (Func fn e2))
-           | simplifyOp (Optr op e1 (Func fn e2)) == (Optr op e1 (Func fn e2)) =
-              Optr op (simplify e1) (simplify $ Func fn $ simplify e2)
-           | otherwise = simplify $ Optr op (simplify e1) (simplify $ Func fn $ simplify e2)
 simplify (Optr op e1 e2)
            | simplifyOp (Optr op e1 e2) == (Optr op e1 e2) = Optr op e1 e2
            | otherwise = simplify $ Optr op (simplify e1) (simplify e2)
 simplify (Func fn (Num n)) = Num (getFn fn n)
 simplify (Func fn X) = Func fn X
-simplify (Func fn (Optr op e1 e2)) 
-            | simplifyFn (Func fn (Optr op e1 e2)) == (Func fn (Optr op e1 e2)) =
-               Func fn (simplify $ Optr op (simplify e1) (simplify e2))
-            | otherwise = simplify $ Func fn (simplify $ Optr op (simplify e1) (simplify e2))
 simplify (Func fn e)
             | simplifyFn (Func fn e) == (Func fn e) =
                Func fn (simplify e)
