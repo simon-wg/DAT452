@@ -208,27 +208,25 @@ instance Arbitrary Expr where
 
 -- | Function that simplifies an expression by pattern matching
 simplify :: Expr -> Expr
-simplify (Optr op (Num n) (Num m)) = Num (getOp op n m)
-simplify (Optr Add (Num 0) e) = simplify e
-simplify (Optr Add e (Num 0)) = simplify e
-simplify (Optr op X e) = Optr op X (simplify e)
-simplify (Optr op e X) = Optr op (simplify e) X
-simplify (Optr op e1 e2)
-           | simplifyOp (Optr op e1 e2) == (Optr op e1 e2) = Optr op e1 e2
-           | otherwise = simplify $ Optr op (simplify e1) (simplify e2)
-simplify (Func fn (Num n)) = Num (getFn fn n)
-simplify (Func fn X) = Func fn X
-simplify (Func fn e)
-            | simplifyFn (Func fn e) == (Func fn e) =
-               Func fn (simplify e)
-            | otherwise = simplify $ Func fn (simplify $ e)
-simplify e = e
+simplify e = simplifyHelper e 0
 
-simplifyOp :: Expr -> Expr
-simplifyOp (Optr op e1 e2) = Optr op (simplify e1) (simplify e2)
-
-simplifyFn :: Expr -> Expr
-simplifyFn (Func fn e) = Func fn (simplify e)
+simplifyHelper :: Expr -> Int -> Expr
+simplifyHelper (Num n) c                    = Num n
+simplifyHelper (Optr Add (Num 0) e1) c      = simplifyHelper e1 0
+simplifyHelper (Optr Add e1 (Num 0)) c      = simplifyHelper e1 0
+simplifyHelper (Optr Mul (Num 0) _) c       = Num 0
+simplifyHelper (Optr Mul _ (Num 0)) c       = Num 0
+simplifyHelper (Optr Mul (Num 1) e) c       = simplifyHelper e 0
+simplifyHelper (Optr Mul e (Num 1)) c       = simplifyHelper e 0
+simplifyHelper X c                          = X
+simplifyHelper (Optr op (Num n) (Num m))  c = Num ((getOp op) n m)
+simplifyHelper (Func fn (Num n)) c          = Num ((getFn fn) n)
+simplifyHelper (Optr op e1 e2) c 
+    |c == 1    = Optr op (simplifyHelper e1 0) (simplifyHelper e2 0)
+    |otherwise = simplifyHelper (Optr op (simplifyHelper e1 0) (simplifyHelper e2 0)) (c+1)
+simplifyHelper (Func fn e) c 
+    |c == 1    = Func fn (simplifyHelper e 0)
+    |otherwise = simplifyHelper (Func fn (simplifyHelper e 0)) (c+1)
 
 -- | Prop assuring that the value for an expression is the same
 -- | before and after simplifying
@@ -244,23 +242,15 @@ prop_multiple_simplify e = simplify (simplify e) == simplify e
 differentiate :: Expr -> Expr
 differentiate (Num _) = Num 0
 differentiate X = Num 1
-differentiate (Optr Add e1 e2) =
-  Optr
+differentiate (Optr Add e1 e2) = simplify
+  (Optr
     Add
     (differentiate e1)
-    (differentiate e2)
-differentiate (Optr Mul e1 e2) =
-  Optr
+    (differentiate e2))
+differentiate (Optr Mul e1 e2) = simplify
+  (Optr
     Add
-    (Optr Mul e1 (differentiate e2))
     (Optr Mul (differentiate e1) e2)
-differentiate (Func Sin e) = simplify $ 
-  Optr Mul 
-    (Func Cos e) 
-    (differentiate e)
-differentiate (Func Cos e) = simplify $ 
-  Optr Mul 
-    (Num (-1)) 
-    (Optr Mul 
-      (Func Sin e) 
-      (differentiate e)) 
+    (Optr Mul e1 (differentiate e2)))
+differentiate (Func Sin e) = simplify $ Optr Mul (differentiate e) (Func Cos e)
+differentiate (Func Cos e) = simplify $ Optr Mul (Num (-1)) (Optr Mul (differentiate e) (Func Sin e))
