@@ -1,4 +1,5 @@
 import System.IO
+import Parsing
 
 {--
 A class representing the decision tree.
@@ -54,5 +55,5 @@ traverseTree (Answer person) = do
 updateTree :: QA -> IO()
 updateTree tree = do writeFile "question.qa" (show tree)
 
-getTree :: IO QA
-getTree = do readFile "question.qa"
+-- getTree :: IO QA
+-- getTree = do readFile "question.qa"
