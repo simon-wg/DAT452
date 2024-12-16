@@ -1,1 +1,1 @@
-Question "Is this person from Europe?" (Question "Is this person a scientist?" (Answer "Marie Curie") (Answer "Queen Elizabeth II")) (Question "Is this person an actor" (Answer "Marilyn Monroe") (Answer "Hillary Clinton"))
+Question "Is this person from Europe?" (Question "Is this person a scientist?" (Question "Is your person male?" (Answer "Alfred Nobel") (Answer "Marie Curie")) (Answer "Queen Elizabeth II")) (Question "Is this person an actor" (Answer "Marilyn Monroe") (Answer "Hillary Clinton"))
