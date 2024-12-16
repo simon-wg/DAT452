@@ -178,7 +178,7 @@ prop_ShowReadExpr e = assoc e == assoc (fromJust $ readExpr $ showExpr e)
 -- | Generator for a random double in the range 0 to 9
 rNum :: Gen Expr
 rNum = do
-  n <- choose (0.0, 9.0)
+  n <- arbitrary
   return $ Num n
 
 -- | Generator for expressions that gets smaller the deeper you go into the expression
@@ -198,7 +198,8 @@ arbExpr depth = do
           return $ Optr Add e1 e2,
           return $ Optr Mul e1 e2,
           return $ Func Sin e1,
-          return $ Func Cos e1
+          return $ Func Cos e1,
+          return $ X
         ]
 
 instance Arbitrary Expr where
