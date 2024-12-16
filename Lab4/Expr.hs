@@ -237,6 +237,28 @@ prop_simplify e = eval e 1 == eval (simplify e) 1
 prop_multiple_simplify :: Expr -> Bool
 prop_multiple_simplify e = simplify (simplify e) == simplify e
 
+prop_simplify_simplifies :: Expr -> Bool
+prop_simplify_simplifies e = check_no_junk $ simplify e
+
+check_no_junk :: Expr -> Bool
+check_no_junk (Optr op X e)             = check_no_junk e
+check_no_junk (Optr op e X)             = check_no_junk e
+
+check_no_junk (Optr Add (Num 0) e)      = False
+check_no_junk (Optr Add e (Num 0))      = False
+check_no_junk (Optr Mul (Num 0) e)      = False
+check_no_junk (Optr Mul e (Num 0))      = False
+check_no_junk (Optr Mul (Num 1) e)      = False
+check_no_junk (Optr Mul e (Num 1))      = False
+check_no_junk (Optr op (Num n) (Num m)) = False
+check_no_junk (Optr op e1 e2)           = check_no_junk e1 && check_no_junk e2
+
+check_no_junk (Func fn (Num n))         = False
+check_no_junk (Func fn e)               = check_no_junk e
+
+check_no_junk (Num n)                   = True
+check_no_junk X                         = True
+
 -- Part G ###############################################
 
 -- | Differentiates a function by pattern matching
