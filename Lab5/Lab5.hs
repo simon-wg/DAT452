@@ -1,6 +1,7 @@
 import Data.Char (toLower)
 import System.IO
 import System.IO.Error (tryIOError)
+import Text.Read (readMaybe)
 
 {--
 A class representing the decision tree.
@@ -77,8 +78,13 @@ updateTree tree = do writeFile "question.qa" (show tree)
 getTree :: IO QA
 getTree = do
   f <- readFile "question.qa"
-  let qa = read f
-  return qa
+  let qa = readMaybe f
+  case qa of
+    Nothing -> do
+      putStr "\nNo tree found, or tree file corrupted.\n"
+      putStr "Overwriting existing file with base tree\n"
+      return baseTree
+    Just qa -> return qa
 
 -- | Asks the user if they want to play the game again
 playAgain :: IO ()
