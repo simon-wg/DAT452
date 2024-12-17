@@ -27,14 +27,14 @@ baseTree =
 -- | Otherwise recursively calls itself and asks the question again.
 traverseTree :: QA -> IO QA
 traverseTree (Question q qa1 qa2) = do
-  putStr ("\n" ++ q ++ " (y/n) ")
+  putStr ("\n" ++ q ++ " (yes/no) ")
   hFlush stdout
   userAnswer <- getLine
   case userAnswer of
-    "y" -> do
+    "yes" -> do
       q1 <- traverseTree qa1
       return (Question q q1 qa2)
-    "n" -> do
+    "no" -> do
       q2 <- traverseTree qa2
       return (Question q qa1 q2)
     _ -> traverseTree (Question q qa1 qa2)
@@ -44,13 +44,13 @@ traverseTree (Question q qa1 qa2) = do
 -- \| Otherwise we ask for the correct person and a question to distinguish
 -- \| between the two people and create a new Question from the data.
 traverseTree (Answer person) = do
-  putStr ("\nWas your person " ++ person ++ "? (y/n) ")
+  putStr ("\nWas your person " ++ person ++ "? (yes/no) ")
   userAnswer <- getLine
   case userAnswer of
-    "y" -> do
+    "yes" -> do
       putStr "\nYES - I WIN!\n"
       return (Answer person)
-    "n" -> do
+    "no" -> do
       putStr ("\nOK -  you won this time.\n")
       putStr ("\nJust Curious: Who was your famous person? ")
       hFlush stdout
@@ -65,7 +65,7 @@ traverseTree (Answer person) = do
       newQuestion <- getLine
       return (Question newQuestion (Answer newPerson) (Answer person))
     _ -> do
-      putStr "\nInvalid input. Please answer with 'y' or 'n'.\n"
+      putStr "\nInvalid input. Please answer with 'yes' or 'no'.\n"
       traverseTree (Answer person)
 
 -- | When given a tree, writes that tree to the "database" file
@@ -79,6 +79,19 @@ getTree = do
   f <- readFile "question.qa"
   let qa = read f
   return qa
+
+-- | Asks the user if they want to play the game again
+playAgain :: IO ()
+playAgain = do
+  putStr "\nDo you want to play again? (yes/no) "
+  hFlush stdout
+  userAnswer <- getLine
+  case userAnswer of
+    "yes" -> main
+    "no" -> putStr "\nGoodbye!\n"
+    _ -> do
+      putStr "\nInvalid input. Please answer with 'yes' or 'no'.\n"
+      playAgain
 
 {-
 Game loop is as follows:
@@ -95,8 +108,9 @@ main = do
       tree <- getTree
       newTree <- traverseTree tree
       updateTree newTree
-      main
+      return ()
     Right tree -> do
       newTree <- traverseTree tree
       updateTree newTree
-      main
+      return ()
+  playAgain
