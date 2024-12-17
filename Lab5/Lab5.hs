@@ -77,14 +77,19 @@ updateTree tree = do writeFile "question.qa" (show tree)
 -- | Collects a tree from storage to be used in the game
 getTree :: IO QA
 getTree = do
-  f <- readFile "question.qa"
-  let qa = readMaybe f
-  case qa of
-    Nothing -> do
-      putStr "\nNo tree found, or tree file corrupted.\n"
-      putStr "Overwriting existing file with base tree\n"
+  f <- tryIOError $ readFile "question.qa"
+  case f of
+    Left _ -> do
+      putStr "\nNo tree found, creating a new tree\n"
       return baseTree
-    Just qa -> return qa
+    Right f -> do
+      let qa = readMaybe f
+      case qa of
+        Nothing -> do
+          putStr "\nTree file corrupted.\n"
+          putStr "Overwriting existing file with base tree\n"
+          return baseTree
+        Just qa -> return qa
 
 -- | Asks the user if they want to play the game again
 playAgain :: IO ()
@@ -107,14 +112,6 @@ Game loop is as follows:
 -}
 main :: IO ()
 main = do
-  tree <- tryIOError getTree
-  case tree of
-    Left _ -> do
-      updateTree baseTree
-      return ()
-    Right tree -> do
-      return ()
-
   tree <- getTree
   newTree <- traverseTree tree
   updateTree newTree
