@@ -1,4 +1,6 @@
+import Data.Char (toLower)
 import System.IO
+import System.IO.Error (tryIOError)
 
 {--
 A class representing the decision tree.
@@ -86,6 +88,15 @@ Game loop is as follows:
 -}
 main :: IO ()
 main = do
-  tree <- getTree
-  newTree <- traverseTree tree
-  updateTree newTree
+  tree <- tryIOError getTree
+  case tree of
+    Left _ -> do
+      updateTree baseTree
+      tree <- getTree
+      newTree <- traverseTree tree
+      updateTree newTree
+      main
+    Right tree -> do
+      newTree <- traverseTree tree
+      updateTree newTree
+      main
