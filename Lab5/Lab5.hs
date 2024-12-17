@@ -105,12 +105,11 @@ main = do
   case tree of
     Left _ -> do
       updateTree baseTree
-      tree <- getTree
-      newTree <- traverseTree tree
-      updateTree newTree
       return ()
     Right tree -> do
-      newTree <- traverseTree tree
-      updateTree newTree
       return ()
+
+  tree <- getTree
+  newTree <- traverseTree tree
+  updateTree newTree
   playAgain
