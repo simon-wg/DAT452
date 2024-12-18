@@ -38,7 +38,9 @@ traverseTree (Question q qa1 qa2) = do
     "no" -> do
       q2 <- traverseTree qa2
       return (Question q qa1 q2)
-    _ -> traverseTree (Question q qa1 qa2)
+    _ -> do 
+      putStr "\nInvalid input. Please answer with 'yes' or 'no'.\n"
+      traverseTree (Question q qa1 qa2)
 
 -- \| If we have arrived at a person we ask whether the person
 -- \| we arrived at is the correct person. If so we simply return the tree.
@@ -92,27 +94,31 @@ getTree = do
         Just qa -> return qa
 
 -- | Asks the user if they want to play the game again
-playAgain :: IO ()
-playAgain = do
+playAgain :: QA -> IO ()
+playAgain tree = do
   putStr "\nDo you want to play again? (yes/no) "
   hFlush stdout
   userAnswer <- getLine
   case userAnswer of
-    "yes" -> main
-    "no" -> putStr "\nGoodbye!\n"
+    "yes" -> do 
+      newTree <- traverseTree tree
+      playAgain newTree
+    "no" -> do 
+      putStr "\nGoodbye!\n"
+      updateTree tree
     _ -> do
       putStr "\nInvalid input. Please answer with 'yes' or 'no'.\n"
-      playAgain
+      playAgain tree
 
 {-
 Game loop is as follows:
         1. Get the tree from storage.
         2. Traverse the tree and update the tree if necessary
-        3. Store the possibly updated tree.
+        3. Ask the player if they want to play again (if so repeat step 2-3)
+        4. Store the possibly updated tree.
 -}
 main :: IO ()
 main = do
   tree <- getTree
   newTree <- traverseTree tree
-  updateTree newTree
-  playAgain
+  playAgain newTree
